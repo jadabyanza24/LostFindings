@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "LostFindings",
+    "slug": "lostfindings",
+    "version": "1.0.0",
+    "scheme": "lostfindings",
+    "platforms": ["ios", "android"],
+    "icon": "./assets/images/icon.png",
+    "splash": {
+      "backgroundColor": "#0e0f13"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "LostFindings butuh akses foto untuk upload gambar barang.",
+          "cameraPermission": "LostFindings butuh akses kamera untuk foto barang."
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.lostfindings.app",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSExceptionDomains": {
+            "supabase.co": {
+              "NSExceptionAllowsInsecureHTTPLoads": true,
+              "NSIncludesSubdomains": true
+            }
+          }
+        }
+      }
+    },
+    "android": {
+      "package": "com.lostfindings.app",
+      "usesCleartextTraffic": true
+    }
+  }
+}
