@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity,
   StyleSheet, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../lib/store';
@@ -17,13 +17,29 @@ export default function ChatListScreen() {
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     fetchChats();
-    const sub = supabase.channel('chat-list')
+
+    const uniqueChannelName = `chat-list-${user.id}-${Date.now()}`;
+    const channel = supabase.channel(uniqueChannelName)
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'messages',
       }, () => fetchChats())
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'messages',
+      }, () => fetchChats())
       .subscribe();
-    return () => { supabase.removeChannel(sub); };
-  }, [user]);
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
+
+  // Refresh saat tab difokus — ini yang bikin dot hilang setelah buka chat
+useFocusEffect(useCallback(() => {
+  if (!user) return;
+  // Delay sedikit supaya markAsRead di chat screen selesai dulu
+  const timer = setTimeout(() => {
+    fetchChats();
+  }, 500);
+  return () => clearTimeout(timer);
+}, [user?.id]));
 
   const formatTime = (isoString: string) => {
     if (!isoString) return '';
@@ -36,7 +52,8 @@ export default function ChatListScreen() {
 
   const fetchChats = async () => {
     const { data } = await supabase.from('chats')
-      .select(`id, created_at, items(id, name),
+      .select(`id, created_at, confirmed_by_finder, confirmed_by_owner, completed,
+        items(id, name),
         user1:users!chats_user1_id_fkey(id, name),
         user2:users!chats_user2_id_fkey(id, name),
         messages(text, created_at, sender_id, read_by)`)
@@ -90,19 +107,16 @@ export default function ChatListScreen() {
           const lastMsg = [...(chat.messages || [])]
             .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
 
-          // Cek apakah ada pesan yang belum dibaca
-          const hasUnread = chat.messages?.some(
-            (m: any) => m.sender_id !== user?.id &&
-            (!m.read_by || !m.read_by.includes(user?.id))
-          );
+          const hasUnread = lastMsg 
+  ? lastMsg.sender_id !== user?.id && (!lastMsg.read_by || !lastMsg.read_by.includes(user?.id))
+  : false;
 
           return (
             <TouchableOpacity
               style={[s.chatItem, hasUnread && s.chatItemUnread]}
               onPress={() => router.push(`/chat/${chat.id}`)}>
 
-              {/* Avatar dengan titik unread */}
-              <View>
+              <View style={s.avatarWrapper}>
                 <View style={s.avatar}>
                   <Text style={{ fontSize: 18, fontWeight: '900', color: '#fff' }}>
                     {other?.name?.charAt(0) || '?'}
@@ -123,9 +137,7 @@ export default function ChatListScreen() {
                 </View>
               </View>
 
-              <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                <Text style={s.time}>{lastMsg ? formatTime(lastMsg.created_at) : ''}</Text>
-              </View>
+              <Text style={s.time}>{lastMsg ? formatTime(lastMsg.created_at) : ''}</Text>
             </TouchableOpacity>
           );
         }}
@@ -152,10 +164,11 @@ const s = StyleSheet.create({
   title: { fontSize: 20, fontWeight: '800', color: colors.text },
   chatItem: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: colors.border },
   chatItemUnread: { backgroundColor: `${colors.accent}08` },
+  avatarWrapper: { width: 46, height: 46 },
   avatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#4a9eff', alignItems: 'center', justifyContent: 'center' },
-  unreadDot: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.bg },
+  unreadDot: { position: 'absolute', top: 0, right: 0, width: 13, height: 13, borderRadius: 7, backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.bg },
   name: { fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 2 },
-  nameUnread: { fontWeight: '900', color: colors.text },
+  nameUnread: { fontWeight: '900' },
   preview: { fontSize: 12, color: colors.muted, flex: 1 },
   previewUnread: { color: colors.text, fontWeight: '600' },
   time: { fontSize: 11, color: colors.muted },

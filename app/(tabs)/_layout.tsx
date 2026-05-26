@@ -1,5 +1,5 @@
 import { Tabs, router } from 'expo-router';
-import { TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../constants/theme';
 import { useStore } from '../../lib/store';
@@ -7,7 +7,6 @@ import { useVerification } from '../../lib/useVerification';
 
 const PostButton = () => {
   const { requireVerified } = useVerification();
-
   return (
     <TouchableOpacity
       onPress={() => requireVerified(() => router.push('/items/new'))}
@@ -25,6 +24,9 @@ const PostButton = () => {
 };
 
 export default function TabLayout() {
+  const user = useStore(s => s.user);
+  const isAdmin = user?.role === 'admin';
+
   return (
     <Tabs screenOptions={{
       headerShown: false,
@@ -56,6 +58,13 @@ export default function TabLayout() {
       <Tabs.Screen name="profile" options={{
         title: 'Profil',
         tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
+      }} />
+      <Tabs.Screen name="admin" options={{
+        title: 'Admin',
+        href: isAdmin ? undefined : null,
+        tabBarIcon: ({ color, size }) => (
+          <Ionicons name="shield-checkmark" size={size} color={color} />
+        ),
       }} />
     </Tabs>
   );
