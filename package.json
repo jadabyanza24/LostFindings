@@ -29,6 +29,9 @@
     "react-native-screens": "~4.16.0",
     "zustand": "^5.0.11"
   },
+  "overrides": {
+    "react-dom": "19.1.0"
+  },
   "devDependencies": {
     "@types/react": "~19.1.10",
     "typescript": "~5.9.2"
