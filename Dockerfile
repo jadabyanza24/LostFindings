@@ -2,13 +2,17 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Build args untuk environment variables
 ARG EXPO_PUBLIC_SUPABASE_URL
 ARG EXPO_PUBLIC_SUPABASE_ANON_KEY
+ARG APP_ENV=production
+ARG APP_NAME=LostFindings
+ARG API_URL
 
-# Set sebagai environment variables
 ENV EXPO_PUBLIC_SUPABASE_URL=$EXPO_PUBLIC_SUPABASE_URL
 ENV EXPO_PUBLIC_SUPABASE_ANON_KEY=$EXPO_PUBLIC_SUPABASE_ANON_KEY
+ENV APP_ENV=$APP_ENV
+ENV APP_NAME=$APP_NAME
+ENV API_URL=$API_URL
 
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps

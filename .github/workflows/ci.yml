@@ -94,3 +94,12 @@ jobs:
             EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+    docker-production:
+      name: Docker Build - Production
+      environment: production
+      env:
+        EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+        EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+        APP_ENV: ${{ vars.APP_ENV }}
+        APP_NAME: ${{ vars.APP_NAME }}
+        API_URL: ${{ vars.API_URL }}
