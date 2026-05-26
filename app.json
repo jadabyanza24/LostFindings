@@ -40,7 +40,6 @@
     },
     "android": {
       "package": "com.lostfindings.app",
-      "usesCleartextTraffic": true,
       "permissions": [
         "android.permission.RECORD_AUDIO"
       ]
