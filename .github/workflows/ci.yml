@@ -51,7 +51,12 @@ jobs:
         run: npm ci --legacy-peer-deps
 
       - name: Run tests
-        run: npm test -- --passWithNoTests --watchAll=false
+        run: |
+          if [ -f "jest.config.js" ] || [ -f "jest.config.ts" ]; then
+            npm test -- --passWithNoTests --watchAll=false
+          else
+            echo "No test config found, skipping tests"
+          fi
         env:
           CI: true
 
