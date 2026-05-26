@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8081:8081"
+    environment:
+      - EXPO_PUBLIC_SUPABASE_URL=${EXPO_PUBLIC_SUPABASE_URL}
+      - EXPO_PUBLIC_SUPABASE_ANON_KEY=${EXPO_PUBLIC_SUPABASE_ANON_KEY}
+      - EXPO_PUBLIC_PROJECT_ID=${EXPO_PUBLIC_PROJECT_ID}
+    volumes:
+      - .:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  # Service untuk testing
+  test:
+    build: .
+    environment:
+      - EXPO_PUBLIC_SUPABASE_URL=${EXPO_PUBLIC_SUPABASE_URL}
+      - EXPO_PUBLIC_SUPABASE_ANON_KEY=${EXPO_PUBLIC_SUPABASE_ANON_KEY}
+    command: npm test
+    profiles:
+      - testing

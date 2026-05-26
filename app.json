@@ -4,7 +4,10 @@
     "slug": "lostfindings",
     "version": "1.0.0",
     "scheme": "lostfindings",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "icon": "./assets/images/icon.png",
     "splash": {
       "backgroundColor": "#0e0f13"
@@ -37,7 +40,17 @@
     },
     "android": {
       "package": "com.lostfindings.app",
-      "usesCleartextTraffic": true
-    }
+      "usesCleartextTraffic": true,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0659803d-3955-489b-99dc-7ba69a8bad5b"
+      }
+    },
+    "owner": "jadabyanza"
   }
 }
