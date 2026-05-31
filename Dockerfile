@@ -21,4 +21,5 @@ COPY . .
 
 EXPOSE 8081
 
-CMD ["npx", "expo", "start", "--no-dev", "--minify"]
+# Menggunakan tunnel lebih aman saat pakai Docker agar HP bisa langsung konek
+CMD ["npx", "expo", "start", "--tunnel"]

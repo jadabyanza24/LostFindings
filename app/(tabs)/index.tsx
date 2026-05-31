@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, TextInput, Image, ScrollView } from 'react-native';
+import { memo, useEffect, useState, useCallback } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, TextInput, ScrollView } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
@@ -7,9 +8,58 @@ import { useStore } from '../../lib/store';
 import { colors } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useVerification } from '../../lib/useVerification';
+import ItemCardSkeleton from '../../components/ItemCardSkeleton';
+
 
 const KATEGORI = ['Semua', 'Elektronik', 'Dompet', 'Kunci', 'Kartu', 'Tas', 'Lainnya'];
 
+const HomeItemCard = memo(function HomeItemCard({ item }: { item: any }) {
+  const imageUrl = item.image_url?.includes(',')
+    ? item.image_url.split(',')[0]
+    : item.image_url;
+
+  return (
+    <TouchableOpacity style={s.itemCard} onPress={() => router.push(`/items/${item.id}`)}>
+      {imageUrl && imageUrl.startsWith('http') ? (
+        <Animated.Image
+          source={{ uri: imageUrl }}
+          style={s.itemImg}
+          resizeMode="cover"
+          // @ts-expect-error Reanimated shared element prop exists at runtime.
+          sharedTransitionTag={`image-${item.id}`}
+        />
+      ) : (
+        <View style={[s.itemImg, { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface2 }]}>
+          <Ionicons name="cube-outline" size={40} color={colors.muted} />
+        </View>
+      )}
+
+      <View style={s.itemInfo}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <Text style={s.itemName} numberOfLines={1}>{item.name}</Text>
+          <View style={[s.typeBadge, item.type === 'found' ? { backgroundColor: 'rgba(46, 204, 138, 0.15)' } : { backgroundColor: 'rgba(224, 92, 92, 0.15)' }]}>
+            <Text style={[s.typeText, { color: item.type === 'found' ? colors.green : colors.red }]}> 
+              {item.type === 'found' ? 'TEMUAN' : 'HILANG'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+          <Ionicons name="location" size={12} color={colors.muted} />
+          <Text style={s.itemLocation} numberOfLines={1}>{item.location}</Text>
+        </View>
+
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+          <Text style={s.itemTime}>
+            {item.created_at?.slice(0, 10)}
+            {item.incident_time ? ` · ${item.incident_time}` : ''}
+          </Text>
+          <Text style={s.itemReporter}>Oleh: {item.users?.name?.split(' ')[0] || 'Anonim'}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+});
 
 export default function HomeScreen() {
   const user = useStore(s => s.user);
@@ -17,6 +67,7 @@ export default function HomeScreen() {
   const { isVerified } = useVerification();
 
   const [dataBarang, setDataBarang] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [sedangRefresh, setSedangRefresh] = useState(false); // Dipisah khusus untuk pull-to-refresh
   const [kataKunci, setKataKunci] = useState('');
   const [kategoriAktif, setKategoriAktif] = useState('Semua');
@@ -35,7 +86,8 @@ export default function HomeScreen() {
     ambilDataBarang();
   }, [kategoriAktif, kataKunci]);
 
-  const ambilDataBarang = async () => {
+  const ambilDataBarang = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     let q = supabase
       .from('items')
       .select('*, users(name)')
@@ -51,12 +103,13 @@ export default function HomeScreen() {
 
     const { data } = await q;
     if (data) setDataBarang(data);
+    setLoading(false);
   };
 
   // Fungsi khusus saat layar ditarik ke bawah (Pull to Refresh)
   const handleRefresh = async () => {
     setSedangRefresh(true);
-    await ambilDataBarang();
+    await ambilDataBarang(false);
     setSedangRefresh(false);
   };
 
@@ -136,61 +189,25 @@ export default function HomeScreen() {
       <Text style={s.sectionLabel}>BARANG TERBARU</Text>
 
       <FlatList
-        data={dataBarang}
-        keyExtractor={item => item.id}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
+        data={loading ? Array.from({ length: 5 }) : dataBarang}
+        keyExtractor={(item, index) => loading ? `skeleton-${index}` : item.id}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
         refreshing={sedangRefresh}
         onRefresh={handleRefresh}
         keyboardShouldPersistTaps="handled" // Mencegah keyboard nutup saat klik list
         keyboardDismissMode="on-drag" // Keyboard otomatis nutup kalau user nge-scroll kebawah
-        renderItem={({ item }) => {
-          const imageUrl = item.image_url?.includes(',') 
-            ? item.image_url.split(',')[0] 
-            : item.image_url;
-
-          return (
-            <TouchableOpacity style={s.itemCard} onPress={() => router.push(`/items/${item.id}`)}>
-              {imageUrl && imageUrl.startsWith('http') ? (
-                <Image source={{ uri: imageUrl }} style={s.itemImg} resizeMode="cover" />
-              ) : (
-                <View style={[s.itemImg, { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface2 }]}>
-                  <Ionicons name="cube-outline" size={40} color={colors.muted} />
-                </View>
-              )}
-              
-              <View style={s.itemInfo}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <Text style={s.itemName} numberOfLines={1}>{item.name}</Text>
-                  <View style={[s.typeBadge, item.type === 'found' ? { backgroundColor: 'rgba(46, 204, 138, 0.15)' } : { backgroundColor: 'rgba(224, 92, 92, 0.15)' }]}>
-                    <Text style={[s.typeText, { color: item.type === 'found' ? colors.green : colors.red }]}>
-                      {item.type === 'found' ? 'TEMUAN' : 'HILANG'}
-                    </Text>
-                  </View>
-                </View>
-                
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                  <Ionicons name="location" size={12} color={colors.muted} />
-                  <Text style={s.itemLocation} numberOfLines={1}>{item.location}</Text>
-                </View>
-
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
-                  <Text style={s.itemTime}>
-                    {item.created_at?.slice(0, 10)}
-                    {item.incident_time ? ` · ${item.incident_time}` : ''}
-                  </Text>
-                  <Text style={s.itemReporter}>Oleh: {item.users?.name?.split(' ')[0] || 'Anonim'}</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          );
-        }}
-        ListEmptyComponent={
+        renderItem={({ item }) => loading ? <ItemCardSkeleton /> : <HomeItemCard item={item} />}
+        ListEmptyComponent={!loading ? (
           <View style={s.emptyBox}>
             <Ionicons name="search-outline" size={60} color={colors.border} style={{ marginBottom: 12 }} />
             <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>Barang tidak ditemukan</Text>
             <Text style={{ fontSize: 13, color: colors.muted, marginTop: 4 }}>Coba ubah kata kunci atau kategori</Text>
           </View>
-        }
+        ) : null}
       />
     </SafeAreaView>
   );
@@ -222,3 +239,11 @@ const s = StyleSheet.create({
   itemReporter: { fontSize: 11, color: colors.muted },
   emptyBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40 },
 });
+
+
+
+
+
+
+
+

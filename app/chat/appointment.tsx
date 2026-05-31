@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity,
   StyleSheet, Alert, ScrollView, Platform } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
@@ -8,38 +9,27 @@ import { useStore } from '../../lib/store';
 import { colors } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
-const TIME_SLOTS = [
-  '07:00', '08:00', '09:00', '10:00', '11:00', '12:00',
-  '13:00', '14:00', '15:00', '16:00', '17:00', '18:00',
-];
 
 export default function AppointmentScreen() {
   const { chatId, itemName, otherName } = useLocalSearchParams<{
     chatId: string; itemName: string; otherName: string;
   }>();
   const user = useStore(s => s.user);
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
+  const [selectedDateTime, setSelectedDateTime] = useState(() => {
+    const next = new Date();
+    next.setMinutes(next.getMinutes() + 30);
+    return next;
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [location, setLocation] = useState('');
   const [customLocation, setCustomLocation] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const getNextDays = () => {
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date();
-      d.setDate(d.getDate() + i);
-      const label = i === 0 ? 'Hari ini' : i === 1 ? 'Besok' :
-        d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
-      const value = d.toISOString().slice(0, 10);
-      days.push({ label, value });
-    }
-    return days;
-  };
 
   const handleSubmit = async () => {
-    if (!date) return Alert.alert('Pilih tanggal dulu!');
-    if (!time) return Alert.alert('Pilih waktu dulu!');
+    const date = selectedDateTime.toISOString().slice(0, 10);
+    const time = selectedDateTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
     if (!location.trim()) return Alert.alert('Isi lokasi dulu!');
 
     setLoading(true);
@@ -68,7 +58,8 @@ export default function AppointmentScreen() {
     } finally { setLoading(false); }
   };
 
-  const days = getNextDays();
+  const date = selectedDateTime.toISOString().slice(0, 10);
+  const time = selectedDateTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
 
   return (
     <SafeAreaView style={s.container}>
@@ -93,33 +84,44 @@ export default function AppointmentScreen() {
           <Ionicons name="calendar-outline" size={14} color={colors.muted} />
           <Text style={s.label}>PILIH TANGGAL</Text>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
-          {days.map(d => (
-            <TouchableOpacity key={d.value} onPress={() => setDate(d.value)}
-              style={[s.dayBtn, date === d.value && s.dayBtnActive]}>
-              <Text style={[s.dayText, date === d.value && { color: '#000' }]}>{d.label}</Text>
-              <Text style={[s.dayDate, date === d.value && { color: '#000' }]}>
-                {d.value.slice(5).replace('-', '/')}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <TouchableOpacity style={s.pickerBtn} onPress={() => setShowDatePicker(true)}>
+          <Ionicons name="calendar" size={16} color={colors.accent} />
+          <Text style={s.pickerText}>{date.split('-').reverse().join('/')}</Text>
+        </TouchableOpacity>
 
         <View style={[s.labelRow, { marginTop: 20 }]}>
           <Ionicons name="time-outline" size={14} color={colors.muted} />
           <Text style={s.label}>PILIH WAKTU</Text>
         </View>
-        <View style={s.timeGrid}>
-          {TIME_SLOTS.map(t => (
-            <TouchableOpacity key={t} onPress={() => setTime(t)}
-              style={[s.timeBtn, time === t && s.timeBtnActive]}>
-              <Text style={[s.timeText, time === t && { color: '#000', fontWeight: '700' }]}>
-                {t}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <TouchableOpacity style={s.pickerBtn} onPress={() => setShowTimePicker(true)}>
+          <Ionicons name="time" size={16} color={colors.accent} />
+          <Text style={s.pickerText}>{time} WIB</Text>
+        </TouchableOpacity>
+
+        {showDatePicker && (
+          <DateTimePicker
+            value={selectedDateTime}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            minimumDate={new Date()}
+            onChange={(_, nextDate) => {
+              if (Platform.OS !== 'ios') setShowDatePicker(false);
+              if (nextDate) setSelectedDateTime(prev => new Date(nextDate.getFullYear(), nextDate.getMonth(), nextDate.getDate(), prev.getHours(), prev.getMinutes()));
+            }}
+          />
+        )}
+        {showTimePicker && (
+          <DateTimePicker
+            value={selectedDateTime}
+            mode="time"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            minuteInterval={1}
+            onChange={(_, nextTime) => {
+              if (Platform.OS !== 'ios') setShowTimePicker(false);
+              if (nextTime) setSelectedDateTime(prev => new Date(prev.getFullYear(), prev.getMonth(), prev.getDate(), nextTime.getHours(), nextTime.getMinutes()));
+            }}
+          />
+        )}
 
         <View style={[s.labelRow, { marginTop: 20 }]}>
           <Ionicons name="location-outline" size={14} color={colors.muted} />
@@ -133,7 +135,7 @@ export default function AppointmentScreen() {
           onChangeText={setLocation}
         />
 
-        {date && time && (location && location !== 'Lainnya...' || customLocation) && (
+        {location.trim() && (
           <View style={s.previewBox}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               <Ionicons name="list" size={14} color={colors.accent} />
@@ -191,9 +193,12 @@ const s = StyleSheet.create({
   locBtnActive: { borderColor: colors.accent, backgroundColor: 'rgba(240,165,0,0.1)' },
   locText: { fontSize: 12, color: colors.muted },
   input: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 13, color: colors.text, fontSize: 14, marginBottom: 16 },
+  pickerBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 14 },
+  pickerText: { color: colors.text, fontSize: 15, fontWeight: '700' },
   previewBox: { backgroundColor: 'rgba(240,165,0,0.08)', borderWidth: 1, borderColor: colors.accent, borderRadius: 12, padding: 16, marginTop: 16, marginBottom: 8 },
   previewTitle: { fontSize: 13, fontWeight: '700', color: colors.accent },
   previewItem: { fontSize: 14, color: colors.text, fontWeight: '500' },
   submitBtn: { marginTop: 20, padding: 16, backgroundColor: colors.accent, borderRadius: 16, alignItems: 'center' },
   submitText: { fontSize: 16, fontWeight: '800', color: '#000' },
 });
+

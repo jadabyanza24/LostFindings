@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity,
-  StyleSheet, Alert, ActivityIndicator, Image } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { colors } from '../../constants/theme';
+import { SkeletonDetail, SkeletonList, SkeletonRows } from '../../components/Skeleton';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function AdminVerificationsScreen() {
@@ -28,8 +28,7 @@ export default function AdminVerificationsScreen() {
     await supabase.from('notifications').insert({
       user_id: verif.user_id, type: 'system',
       title: 'Verifikasi Disetujui!',
-      body: 'Akun kamu sudah terverifikasi sebagai mahasiswa.', read: false,
-    });
+      body: 'Akun kamu sudah terverifikasi sebagai mahasiswa.', read: false });
     fetchVerifs();
     Alert.alert('Disetujui!', `${verif.users?.name} sudah terverifikasi.`);
   };
@@ -42,8 +41,7 @@ export default function AdminVerificationsScreen() {
         await supabase.from('notifications').insert({
           user_id: verif.user_id, type: 'system',
           title: 'Verifikasi Ditolak',
-          body: 'Foto KTM tidak valid. Coba upload ulang dengan foto yang lebih jelas.', read: false,
-        });
+          body: 'Foto KTM tidak valid. Coba upload ulang dengan foto yang lebih jelas.', read: false });
         fetchVerifs();
       }}
     ]);
@@ -51,9 +49,7 @@ export default function AdminVerificationsScreen() {
 
   const filtered = verifs.filter(v => v.status === filter);
 
-  if (loading) return (
-    <View style={s.center}><ActivityIndicator color={colors.accent} size="large" /></View>
-  );
+  if (loading) return <SkeletonRows count={6} />;
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
@@ -77,6 +73,10 @@ export default function AdminVerificationsScreen() {
       </View>
 
       <FlatList
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
         data={filtered}
         keyExtractor={v => v.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
@@ -160,5 +160,9 @@ const s = StyleSheet.create({
   approveBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 12, backgroundColor: colors.accent, borderRadius: 10 },
   rejectBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 12, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.red, borderRadius: 10 },
   statusApproved: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, backgroundColor: 'rgba(46,204,138,0.1)', borderRadius: 8 },
-  statusRejected: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, backgroundColor: 'rgba(224,92,92,0.1)', borderRadius: 8 },
-});
+  statusRejected: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, backgroundColor: 'rgba(224,92,92,0.1)', borderRadius: 8 } });
+
+
+
+
+

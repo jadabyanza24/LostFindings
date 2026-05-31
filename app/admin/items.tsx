@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity,
-  StyleSheet, Alert, ActivityIndicator, TextInput, Image } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, TextInput, Image } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { colors } from '../../constants/theme';
+import { SkeletonDetail, SkeletonList, SkeletonRows } from '../../components/Skeleton';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function AdminItemsScreen() {
@@ -37,8 +37,7 @@ export default function AdminItemsScreen() {
       await supabase.from('notifications').insert({
         user_id: item.user_id, type: 'system',
         title: 'Laporan Dihapus Admin',
-        body: `Laporan "${item.name}" dihapus oleh admin.`, read: false,
-      });
+        body: `Laporan "${item.name}" dihapus oleh admin.`, read: false });
       fetchItems();
       Alert.alert('Berhasil!', 'Barang berhasil dihapus.');
     }}
@@ -62,9 +61,7 @@ export default function AdminItemsScreen() {
     return matchSearch;
   });
 
-  if (loading) return (
-    <View style={s.center}><ActivityIndicator color={colors.accent} size="large" /></View>
-  );
+  if (loading) return <SkeletonList count={6} />;
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
@@ -101,6 +98,10 @@ export default function AdminItemsScreen() {
       </View>
 
       <FlatList
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
         data={filtered}
         keyExtractor={i => i.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
@@ -200,5 +201,9 @@ const s = StyleSheet.create({
   badgeLost: { backgroundColor: 'rgba(224,92,92,0.15)' },
   badgeClaimed: { backgroundColor: 'rgba(74,158,255,0.15)' },
   actions: { flexDirection: 'row', gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border },
-  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 8, backgroundColor: colors.surface2, borderRadius: 8 },
-});
+  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 8, backgroundColor: colors.surface2, borderRadius: 8 } });
+
+
+
+
+

@@ -5,16 +5,18 @@ services:
     build: .
     ports:
       - "8081:8081"
+      - "19000:19000" # Kadang Expo butuh port ini dibuka
     environment:
       - EXPO_PUBLIC_SUPABASE_URL=${EXPO_PUBLIC_SUPABASE_URL}
       - EXPO_PUBLIC_SUPABASE_ANON_KEY=${EXPO_PUBLIC_SUPABASE_ANON_KEY}
       - EXPO_PUBLIC_PROJECT_ID=${EXPO_PUBLIC_PROJECT_ID}
+      # Set ini ke IP Wi-Fi laptopmu jika tidak mau pakai --tunnel
+      # - REACT_NATIVE_PACKAGER_HOSTNAME=192.168.1.x 
     volumes:
       - .:/app
       - /app/node_modules
     restart: unless-stopped
 
-  # Service untuk testing
   test:
     build: .
     environment:

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity,
-  StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { colors } from '../../constants/theme';
+import { SkeletonDetail, SkeletonList, SkeletonRows } from '../../components/Skeleton';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function AdminReportsScreen() {
@@ -37,8 +37,7 @@ export default function AdminReportsScreen() {
           user_id: report.items?.user_id, type: 'system',
           title: 'Laporan Dihapus',
           body: `Barang "${report.items?.name}" dihapus oleh admin karena melanggar aturan.`,
-          read: false,
-        });
+          read: false });
         fetchReports();
         Alert.alert('Barang dihapus!');
       }}
@@ -47,9 +46,7 @@ export default function AdminReportsScreen() {
 
   const filtered = reports.filter(r => r.status === filter);
 
-  if (loading) return (
-    <View style={s.center}><ActivityIndicator color={colors.accent} size="large" /></View>
-  );
+  if (loading) return <SkeletonRows count={6} />;
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
@@ -73,6 +70,10 @@ export default function AdminReportsScreen() {
       </View>
 
       <FlatList
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
         data={filtered}
         keyExtractor={r => r.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
@@ -173,5 +174,9 @@ const s = StyleSheet.create({
   removeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 10, backgroundColor: colors.red, borderRadius: 10 },
   statusBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8 },
   statusReviewed: { backgroundColor: 'rgba(46,204,138,0.1)' },
-  statusDismissed: { backgroundColor: colors.surface2 },
-});
+  statusDismissed: { backgroundColor: colors.surface2 } });
+
+
+
+
+

@@ -1,14 +1,44 @@
-import { useEffect, useState, useRef } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform,
-  ActivityIndicator, Alert } from 'react-native';
+import { memo, useEffect, useState, useRef } from 'react';
+import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../lib/store';
 import { colors } from '../../constants/theme';
+import { SkeletonDetail, SkeletonList, SkeletonRows } from '../../components/Skeleton';
 import { Ionicons } from '@expo/vector-icons';
 
+const ChatMessageBubble = memo(function ChatMessageBubble({ msg, userId, formatTime }: {
+  msg: any;
+  userId?: string;
+  formatTime: (isoString: string) => string;
+}) {
+  const isMine = msg.sender_id === userId;
+  const isSystem = msg.text?.includes('sudah konfirmasi') || msg.text?.includes('menolak jadwal') || msg.text?.includes('menerima jadwal');
+
+  if (isSystem) return (
+    <View style={s.systemMsg}>
+      <Text style={s.systemMsgText}>{msg.text}</Text>
+    </View>
+  );
+
+  return (
+    <View style={[s.msgRow, isMine && { alignSelf: 'flex-end', alignItems: 'flex-end' }]}>
+      <View style={[s.bubble, isMine ? s.bubbleMine : s.bubbleOther]}>
+        <Text style={[s.bubbleText, isMine && { color: '#000' }]}>{msg.text}</Text>
+      </View>
+      <Text style={s.msgTime}>{formatTime(msg.created_at)}</Text>
+    </View>
+  );
+});
+const mergeUniqueMessages = (current: any[], incoming: any[]) => {
+  const map = new Map<string, any>();
+  [...current, ...incoming].forEach((message, index) => {
+    const key = message.id ? String(message.id) : `fallback-${message.created_at}-${message.sender_id}-${index}`;
+    map.set(key, message);
+  });
+  return [...map.values()].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+};
 export default function ChatRoomScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const user = useStore(s => s.user);
@@ -27,7 +57,8 @@ export default function ChatRoomScreen() {
         table: 'messages', filter: `chat_id=eq.${id}`
       }, payload => {
         if (payload.new.sender_id !== user?.id) {
-          setMessages(prev => [...prev, payload.new]);
+          setMessages(prev => mergeUniqueMessages(prev, [payload.new]));
+          markMessagesAsRead([payload.new]);
           setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
         }
       })
@@ -50,8 +81,7 @@ export default function ChatRoomScreen() {
   const date = new Date(isoString);
   return date.toLocaleTimeString('id-ID', {
     hour: '2-digit', minute: '2-digit',
-    timeZone: 'Asia/Jakarta',
-  });
+    timeZone: 'Asia/Jakarta' });
 };
 
   const fetchChat = async () => {
@@ -63,14 +93,40 @@ export default function ChatRoomScreen() {
     setChat(chatData);
 
     const { data: msgs } = await supabase.from('messages')
-      .select('*').eq('chat_id', id).order('created_at');
-    if (msgs) setMessages(msgs);
+      .select('*').eq('chat_id', id).order('created_at', { ascending: false }).limit(80);
+    if (msgs) {
+      const orderedMsgs = [...msgs].reverse();
+      setMessages(prev => mergeUniqueMessages(prev, orderedMsgs));
+      markMessagesAsRead(orderedMsgs);
+    }
 
     const { data: appts } = await supabase.from('appointments')
       .select('*').eq('chat_id', id);
     if (appts) setAppointments(appts);
 
     setLoading(false);
+  };
+
+  const markMessagesAsRead = async (messagesToMark: any[]) => {
+    if (!user) return;
+
+    const unreadMessages = messagesToMark.filter(message =>
+      message.sender_id !== user.id && !((message.read_by || []).includes(user.id))
+    );
+
+    if (unreadMessages.length === 0) return;
+
+    await Promise.all(unreadMessages.map(message => {
+      const readBy = [...new Set([...(message.read_by || []), user.id])];
+      return supabase.from('messages')
+        .update({ read_by: readBy })
+        .eq('id', message.id);
+    }));
+
+    setMessages(prev => prev.map(message => {
+      if (!unreadMessages.some(unread => unread.id === message.id)) return message;
+      return { ...message, read_by: [...new Set([...(message.read_by || []), user.id])] };
+    }));
   };
 
   const sendMessage = async () => {
@@ -80,9 +136,8 @@ export default function ChatRoomScreen() {
     const tempMsg = {
       id: `temp-${Date.now()}`,
       chat_id: id, sender_id: user.id,
-      text, created_at: new Date().toISOString(),
-    };
-    setMessages(prev => [...prev, tempMsg]);
+      text, created_at: new Date().toISOString() };
+    setMessages(prev => mergeUniqueMessages(prev, [tempMsg]));
     const { data: sentMsg } = await supabase.from('messages')
       .insert({ chat_id: id, sender_id: user.id, text })
       .select().single();
@@ -91,8 +146,7 @@ export default function ChatRoomScreen() {
     await supabase.from('notifications').insert({
       user_id: otherUserId, type: 'msg',
       title: `Pesan dari ${user.name}`,
-      body: text.length > 50 ? text.substring(0, 50) + '...' : text, read: false,
-    });
+      body: text.length > 50 ? text.substring(0, 50) + '...' : text, read: false });
     setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
@@ -119,15 +173,13 @@ export default function ChatRoomScreen() {
           .update({
             confirmed_by_finder: false,
             confirmed_by_owner: false,
-            completed: false,
-          })
+            completed: false })
           .eq('id', id);
 
         // Kirim pesan sistem
         await supabase.from('messages').insert({
           chat_id: id, sender_id: user!.id,
-          text: `${user!.name} membatalkan klaim barang.`,
-        });
+          text: `${user!.name} membatalkan klaim barang.` });
 
         // Notif ke pihak lain
         const otherUserId = chat?.user1?.id === user!.id
@@ -136,8 +188,7 @@ export default function ChatRoomScreen() {
           user_id: otherUserId, type: 'claim',
           title: 'Klaim Dibatalkan',
           body: `${user!.name} membatalkan klaim "${chat.items?.name}".`,
-          read: false,
-        });
+          read: false });
 
         fetchChat();
         Alert.alert('Klaim Dibatalkan', 'Barang kembali tersedia untuk diklaim.');
@@ -187,12 +238,10 @@ export default function ChatRoomScreen() {
             await supabase.from('notifications').insert({
               user_id: otherUserId, type: 'claim',
               title: 'Menunggu Konfirmasimu!',
-              body: `${user.name} sudah konfirmasi serah terima "${chat.items?.name}".`, read: false,
-            });
+              body: `${user.name} sudah konfirmasi serah terima "${chat.items?.name}".`, read: false });
             await supabase.from('messages').insert({
               chat_id: id, sender_id: user.id,
-              text: `${user.name} sudah konfirmasi serah terima barang.`,
-            });
+              text: `${user.name} sudah konfirmasi serah terima barang.` });
             Alert.alert('Konfirmasi Dikirim!', 'Menunggu konfirmasi dari pihak lainnya.');
           }
           fetchChat();
@@ -207,8 +256,7 @@ export default function ChatRoomScreen() {
       chat_id: id, sender_id: user!.id,
       text: status === 'accepted'
         ? `${user!.name} menerima jadwal janjian!`
-        : `${user!.name} menolak jadwal janjian.`,
-    });
+        : `${user!.name} menolak jadwal janjian.` });
     fetchChat();
   };
 
@@ -218,9 +266,7 @@ export default function ChatRoomScreen() {
   const myConfirmed = isFinder ? chat?.confirmed_by_finder : chat?.confirmed_by_owner;
   const isCompleted = chat?.completed;
 
-  if (loading) return (
-    <View style={s.center}><ActivityIndicator color={colors.accent} size="large"/></View>
-  );
+  if (loading) return <SkeletonRows count={7} />;
 
   return (
     <SafeAreaView style={s.container}>
@@ -248,8 +294,7 @@ export default function ChatRoomScreen() {
               params: {
                 chatId: id,
                 itemName: chat?.items?.name || 'Barang',
-                otherName: otherUser?.name || 'User',
-              }
+                otherName: otherUser?.name || 'User' }
             })}>
             <Ionicons name="calendar" size={20} color={colors.text} />
           </TouchableOpacity>
@@ -327,9 +372,13 @@ export default function ChatRoomScreen() {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <FlatList
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
           ref={flatRef}
           data={messages}
-          keyExtractor={m => m.id}
+          keyExtractor={(message, index) => `${message.id || 'message'}-${message.created_at || index}-${index}`}
           contentContainerStyle={[
             { padding: 16, gap: 8, paddingBottom: 16 },
             messages.length === 0 && { flex: 1, justifyContent: 'center' }
@@ -349,79 +398,7 @@ export default function ChatRoomScreen() {
             </View>
           }
           renderItem={({ item: msg }) => {
-            const isMine = msg.sender_id === user?.id;
-            const isSystem = msg.text?.includes('sudah konfirmasi') || msg.text?.includes('menolak jadwal') || msg.text?.includes('menerima jadwal');
-
-            if (msg.text?.includes('JADWAL_JANJIAN:')) {
-              const apptId = msg.text.replace('📅 JADWAL_JANJIAN:', '').replace('JADWAL_JANJIAN:', '').trim();
-              const appt = appointments.find(a => a.id === apptId);
-              if (!appt) return null;
-              return (
-                <View style={s.apptCard}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center', marginBottom: 12 }}>
-                    <Ionicons name="calendar" size={16} color={colors.accent} />
-                    <Text style={s.apptTitle}>Jadwal Janjian</Text>
-                  </View>
-                  <View style={s.apptRow}>
-                    <Text style={s.apptLabel}>Tanggal</Text>
-                    <Text style={s.apptValue}>{appt.date?.split('-').reverse().join('/')}</Text>
-                  </View>
-                  <View style={s.apptRow}>
-                    <Text style={s.apptLabel}>Waktu</Text>
-                    <Text style={s.apptValue}>{appt.time} WIB</Text>
-                  </View>
-                  <View style={s.apptRow}>
-                    <Text style={s.apptLabel}>Lokasi</Text>
-                    <Text style={s.apptValue}>{appt.location}</Text>
-                  </View>
-                  {appt.status === 'pending' && appt.proposed_by !== user?.id && (
-                    <View style={s.apptActions}>
-                      <TouchableOpacity style={s.apptAccept} onPress={() => handleAppointmentResponse(appt.id, 'accepted')}>
-                        <Ionicons name="checkmark" size={14} color="#000" />
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#000', marginLeft: 4 }}>Terima</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={s.apptDecline} onPress={() => handleAppointmentResponse(appt.id, 'declined')}>
-                        <Ionicons name="close" size={14} color={colors.red} />
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: colors.red, marginLeft: 4 }}>Tolak</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                  {appt.status === 'pending' && appt.proposed_by === user?.id && (
-                    <View style={s.apptPending}>
-                      <Ionicons name="time" size={14} color={colors.muted} />
-                      <Text style={{ fontSize: 12, color: colors.muted, marginLeft: 4 }}>Menunggu konfirmasi...</Text>
-                    </View>
-                  )}
-                  {appt.status === 'accepted' && (
-                    <View style={s.apptAccepted}>
-                      <Ionicons name="checkmark-circle" size={14} color={colors.green} />
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: colors.green, marginLeft: 4 }}>Jadwal Diterima</Text>
-                    </View>
-                  )}
-                  {appt.status === 'declined' && (
-                    <View style={s.apptDeclined}>
-                     <Ionicons name="close-circle" size={14} color={colors.red} />
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: colors.red, marginLeft: 4 }}>Jadwal Ditolak</Text>
-                    </View>
-                  )}
-                </View>
-              );
-            }
-
-            if (isSystem) return (
-              <View style={s.systemMsg}>
-                <Text style={s.systemMsgText}>{msg.text}</Text>
-              </View>
-            );
-
-            return (
-              <View style={[s.msgRow, isMine && { alignSelf: 'flex-end', alignItems: 'flex-end' }]}>
-                <View style={[s.bubble, isMine ? s.bubbleMine : s.bubbleOther]}>
-                  <Text style={[s.bubbleText, isMine && { color: '#000' }]}>{msg.text}</Text>
-                </View>
-                <Text style={s.msgTime}>{formatTime(msg.created_at)}</Text>
-              </View>
-            );
+            return <ChatMessageBubble msg={msg} userId={user?.id} formatTime={formatTime} />;
           }}
         />
 
@@ -493,5 +470,15 @@ const s = StyleSheet.create({
   apptDecline: { flex: 1, flexDirection: 'row', padding: 10, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.red, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   apptAccepted: { marginTop: 10, padding: 8, backgroundColor: 'rgba(46,204,138,0.1)', borderRadius: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
   apptDeclined: { marginTop: 10, padding: 8, backgroundColor: 'rgba(224,92,92,0.1)', borderRadius: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
-  apptPending: { marginTop: 10, padding: 8, backgroundColor: colors.surface2, borderRadius: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
-});
+  apptPending: { marginTop: 10, padding: 8, backgroundColor: colors.surface2, borderRadius: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' } });
+
+
+
+
+
+
+
+
+
+
+

@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { useStore } from '../lib/store';
+import AdminFab from '../components/AdminFab';
 
 import * as SplashScreen from 'expo-splash-screen';
 
@@ -53,7 +54,9 @@ export default function RootLayout() {
         <StatusBar style="light" />
         <Stack screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: '#0e0f13' }
+          contentStyle: { backgroundColor: '#0e0f13' },
+          animation: 'fade',
+          animationDuration: 220
         }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="auth/login" />
@@ -71,7 +74,10 @@ export default function RootLayout() {
           <Stack.Screen name="admin/reports" options={{ presentation: 'card' }} />
           <Stack.Screen name="admin/items" options={{ presentation: 'card' }} />
         </Stack>
+        <AdminFab />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
+
+

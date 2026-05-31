@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet,
-  Alert, Image, ActivityIndicator } from 'react-native';
+  Alert, Image } from 'react-native';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -122,7 +122,7 @@ export default function VerifyScreen() {
               style={[s.btn, (!image || loading) && { opacity: 0.6 }]}
               onPress={handleSubmit} disabled={!image || loading}>
               {loading
-                ? <ActivityIndicator color="#000" />
+                ? <Text style={s.btnText}>Mengirim...</Text>
                 : <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <Ionicons name="paper-plane-outline" size={18} color="#000" />
                     <Text style={s.btnText}>Kirim untuk Verifikasi</Text>
@@ -155,3 +155,4 @@ const s = StyleSheet.create({
   successTitle: { fontSize: 24, fontWeight: '900', color: colors.text, marginBottom: 12 },
   successDesc: { fontSize: 14, color: colors.muted, textAlign: 'center', lineHeight: 22, marginBottom: 32 },
 });
+

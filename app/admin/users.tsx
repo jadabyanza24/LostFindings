@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity,
-  StyleSheet, Alert, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { colors } from '../../constants/theme';
+import { SkeletonDetail, SkeletonList, SkeletonRows } from '../../components/Skeleton';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function AdminUsersScreen() {
@@ -55,9 +55,7 @@ export default function AdminUsersScreen() {
     u.email?.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (loading) return (
-    <View style={s.center}><ActivityIndicator color={colors.accent} size="large" /></View>
-  );
+  if (loading) return <SkeletonRows count={6} />;
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
@@ -83,6 +81,10 @@ export default function AdminUsersScreen() {
       </View>
 
       <FlatList
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
         data={filtered}
         keyExtractor={u => u.id}
         contentContainerStyle={[
@@ -157,5 +159,9 @@ const s = StyleSheet.create({
   userName: { fontSize: 14, fontWeight: '700', color: colors.text },
   userNim: { fontSize: 12, color: colors.muted, marginTop: 2 },
   userEmail: { fontSize: 11, color: colors.muted },
-  adminBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: colors.accent },
-});
+  adminBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: colors.accent } });
+
+
+
+
+

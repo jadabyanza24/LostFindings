@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, Image } from 'react-native';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -217,7 +217,7 @@ export default function NewItemScreen() {
           style={[s.btn, loading && { opacity: 0.6 }]}
           onPress={() => requireVerified(handleSubmit)}
           disabled={loading}>
-          {loading ? <ActivityIndicator color="#000" /> : <Text style={s.btnText}>Kirim Laporan</Text>}
+          {loading ? <Text style={s.btnText}>Mengirim...</Text> : <Text style={s.btnText}>Kirim Laporan</Text>}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -246,3 +246,6 @@ const s = StyleSheet.create({
   btn: { padding: 16, backgroundColor: colors.accent, borderRadius: 16, alignItems: 'center', marginTop: 10 },
   btnText: { fontSize: 16, fontWeight: '800', color: '#000' },
 });
+
+
+

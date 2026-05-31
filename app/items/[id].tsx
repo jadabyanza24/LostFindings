@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Image, Share, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Share, Dimensions } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../lib/store';
 import { colors } from '../../constants/theme';
+import { SkeletonDetail, SkeletonList, SkeletonRows } from '../../components/Skeleton';
 import { Ionicons } from '@expo/vector-icons';
 import ImageViewing from 'react-native-image-viewing';
 import { useVerification } from '../../lib/useVerification';
+
 
 const CATEGORY_ICONS: Record<string, any> = {
   elektronik: 'phone-portrait-outline',
@@ -74,8 +77,7 @@ export default function ItemDetailScreen() {
     const { error } = await supabase.from('claims').insert({
       item_id: item.id,
       claimant_id: user.id,
-      status: 'pending',
-    });
+      status: 'pending' });
     if (error) throw error;
     setAlreadyClaimed(true);
     Alert.alert('Klaim Terkirim!', 'Tunggu konfirmasi dari pelapor.');
@@ -91,8 +93,7 @@ export default function ItemDetailScreen() {
       .eq('item_id', item.id).single();
     if (existing) return router.push(`/chat/${existing.id}`);
     const { data: chat } = await supabase.from('chats').insert({
-      item_id: item.id, user1_id: user.id, user2_id: item.user_id,
-    }).select().single();
+      item_id: item.id, user1_id: user.id, user2_id: item.user_id }).select().single();
     if (chat) router.push(`/chat/${chat.id}`);
   };
 
@@ -102,12 +103,11 @@ export default function ItemDetailScreen() {
       reporter_id: user.id,
       item_id: item.id,
       reason,
-      status: 'pending',
-    });
+      status: 'pending' });
     Alert.alert('Laporan Terkirim', 'Terima kasih! Tim admin akan meninjau laporan ini.');
   };
 
-  if (loading) return <View style={s.center}><ActivityIndicator color={colors.accent} size="large"/></View>;
+  if (loading) return <SkeletonDetail />;
   if (!item) return <View style={s.center}><Text style={{color:colors.muted}}>Tidak ditemukan.</Text></View>;
 
   const isOwner = user?.id === item.users?.id;
@@ -123,8 +123,7 @@ export default function ItemDetailScreen() {
           `Lokasi: ${item.location}\n` +
           `Dilaporkan: ${item.created_at?.slice(0, 10)}\n` +
           `Pelapor: ${item.users?.name || 'Anonim'}\n\n` +
-          `Bantu sebarkan! Cek di app LostFindings.`,
-      });
+          `Bantu sebarkan! Cek di app LostFindings.` });
     } catch (e: any) {
       Alert.alert('Error', e.message);
     }
@@ -159,10 +158,12 @@ export default function ItemDetailScreen() {
                     key={i}
                     activeOpacity={0.9}
                     onPress={() => { setViewerIndex(i); setViewerVisible(true); }}>
-                    <Image
+                    <Animated.Image
                       source={{ uri: url }}
                       style={{ width: SCREEN_WIDTH, height: 280, backgroundColor: '#000' }}
                       resizeMode="contain"
+                      // @ts-expect-error Reanimated shared element prop exists at runtime.
+                      sharedTransitionTag={i === 0 ? `image-${item.id}` : undefined}
                     />
                   </TouchableOpacity>
                 ))}
@@ -187,10 +188,12 @@ export default function ItemDetailScreen() {
             <TouchableOpacity
               activeOpacity={0.9}
               onPress={() => { setViewerIndex(0); setViewerVisible(true); }}>
-              <Image
+              <Animated.Image
                 source={{ uri: item.image_url }}
                 style={{ width: '100%', height: 280, backgroundColor: '#000' }}
                 resizeMode="contain"
+                // @ts-expect-error Reanimated shared element prop exists at runtime.
+                sharedTransitionTag={`image-${item.id}`}
               />
               <ImageViewing
                 images={[{ uri: item.image_url }]}
@@ -368,28 +371,24 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.green,
     borderRadius: 14,
-    marginBottom: 12,
-  },
+    marginBottom: 12 },
   claimedText: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.green,
-  },
+    color: colors.green },
   shareBtn: { 
     padding: 14, 
     backgroundColor: colors.surface, 
     borderWidth: 1, 
     borderColor: colors.border, 
-    borderRadius: 12,
-  },
+    borderRadius: 12 },
   shareBtnText: { fontSize: 13, fontWeight: '700', color: colors.text },
   reportBtn: {
     padding: 14,
     backgroundColor: 'rgba(224,92,92,0.1)',
     borderWidth: 1,
     borderColor: colors.red,
-    borderRadius: 12,
-  },
+    borderRadius: 12 },
   reportBtnText: { fontSize: 13, fontWeight: '700', color: colors.red },
   dotRow: { 
     flexDirection: 'row', 
@@ -410,3 +409,13 @@ const s = StyleSheet.create({
   },
   statusBadge: { position: 'absolute', bottom: 12, right: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 50 }
 });
+
+
+
+
+
+
+
+
+
+

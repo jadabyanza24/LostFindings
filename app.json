@@ -21,7 +21,8 @@
           "photosPermission": "LostFindings butuh akses foto untuk upload gambar barang.",
           "cameraPermission": "LostFindings butuh akses kamera untuk foto barang."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "ios": {
       "supportsTablet": true,

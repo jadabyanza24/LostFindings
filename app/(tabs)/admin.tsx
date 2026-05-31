@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, ActivityIndicator } from 'react-native';
+  StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../lib/store';
 import { colors } from '../../constants/theme';
+import { SkeletonDetail, SkeletonList, SkeletonRows } from '../../components/Skeleton';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function AdminScreen() {
@@ -13,8 +14,7 @@ export default function AdminScreen() {
   const [stats, setStats] = useState({
     totalItems: 0, activeItems: 0, claimedItems: 0,
     totalUsers: 0, bannedUsers: 0, verifiedUsers: 0,
-    pendingVerif: 0, pendingReports: 0,
-  });
+    pendingVerif: 0, pendingReports: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { fetchStats(); }, []);
@@ -35,8 +35,7 @@ export default function AdminScreen() {
       bannedUsers: users.data?.filter(u => u.is_banned).length || 0,
       verifiedUsers: users.data?.filter(u => u.is_verified).length || 0,
       pendingVerif: verifs.data?.filter(v => v.status === 'pending').length || 0,
-      pendingReports: reports.data?.filter(r => r.status === 'pending').length || 0,
-    });
+      pendingReports: reports.data?.filter(r => r.status === 'pending').length || 0 });
     setLoading(false);
   };
 
@@ -58,13 +57,7 @@ export default function AdminScreen() {
     </SafeAreaView>
   );
 
-  if (loading) return (
-    <SafeAreaView style={s.container} edges={['top']}>
-      <View style={s.center}>
-        <ActivityIndicator color={colors.accent} size="large" />
-      </View>
-    </SafeAreaView>
-  );
+  if (loading) return <SkeletonRows count={5} />;
 
   const MENU = [
     { icon: 'cube', label: 'Kelola Barang', sub: `${stats.activeItems} aktif · ${stats.claimedItems} kembali`, path: '/admin/items', color: colors.accent },
@@ -152,5 +145,9 @@ const s = StyleSheet.create({
   menuLabel: { fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 2 },
   menuSub: { fontSize: 12, color: colors.muted },
   badge: { backgroundColor: colors.red, width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { fontSize: 11, fontWeight: '800', color: '#fff' },
-});
+  badgeText: { fontSize: 11, fontWeight: '800', color: '#fff' } });
+
+
+
+
+

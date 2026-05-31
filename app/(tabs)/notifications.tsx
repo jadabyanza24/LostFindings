@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity,
-  StyleSheet, ActivityIndicator } from 'react-native';
+  StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../lib/store';
 import { colors } from '../../constants/theme';
+import { SkeletonDetail, SkeletonList, SkeletonRows } from '../../components/Skeleton';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -27,8 +28,7 @@ export default function NotificationsScreen() {
         event: 'INSERT',
         schema: 'public',
         table: 'notifications',
-        filter: `user_id=eq.${user.id}`,
-      }, payload => {
+        filter: `user_id=eq.${user.id}` }, payload => {
         setNotifs(prev => [payload.new, ...prev]);
       })
       .subscribe((status) => {
@@ -51,11 +51,7 @@ export default function NotificationsScreen() {
       .update({ read: true })
       .eq('user_id', user!.id).eq('read', false);
 
-  if (loading) return (
-    <View style={s.center}>
-      <ActivityIndicator color={colors.accent} size="large"/>
-    </View>
-  );
+  if (loading) return <SkeletonRows count={6} />;
 
   const handleNotifPress = async (notif: any) => {
     await supabase.from('notifications')
@@ -100,6 +96,10 @@ export default function NotificationsScreen() {
         </TouchableOpacity>
       </View>
       <FlatList
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
         data={notifs}
         keyExtractor={n => n.id}
         scrollEnabled={notifs.length > 0}
@@ -157,5 +157,9 @@ const s = StyleSheet.create({
   notifTitle: { fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 3 },
   notifBody: { fontSize: 13, color: colors.muted, lineHeight: 18, marginBottom: 4 },
   notifTime: { fontSize: 11, color: colors.muted },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent, marginTop: 6 },
-});
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent, marginTop: 6 } });
+
+
+
+
+
