@@ -5,11 +5,13 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../lib/store';
-import { colors } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { SkeletonDetail, SkeletonList, SkeletonRows } from '../../components/Skeleton';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function AdminScreen() {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   const user = useStore(s => s.user);
   const [stats, setStats] = useState({
     totalItems: 0, activeItems: 0, claimedItems: 0,
@@ -49,7 +51,7 @@ export default function AdminScreen() {
         <View style={{ width: 36 }} />
       </View>
       <View style={s.center}>
-        <Ionicons name="lock-closed-outline" size={60} color={colors.border} style={{ marginBottom: 16 }} />
+        <Ionicons name="lock-closed-outline" size={60} color={colors.muted} style={{ marginBottom: 16 }} />
         <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>
           Hanya untuk Administrator
         </Text>
@@ -126,7 +128,7 @@ export default function AdminScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },

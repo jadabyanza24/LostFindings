@@ -2,10 +2,12 @@ import { TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 import { useStore } from '../lib/store';
 
 export default function AdminFab() {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   const user = useStore(s => s.user);
   const insets = useSafeAreaInsets();
 
@@ -22,7 +24,7 @@ export default function AdminFab() {
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 18,

@@ -3,11 +3,13 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, TextInput, I
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
-import { colors } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { SkeletonDetail, SkeletonList, SkeletonRows } from '../../components/Skeleton';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function AdminItemsScreen() {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -180,7 +182,7 @@ export default function AdminItemsScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },

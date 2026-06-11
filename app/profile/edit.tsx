@@ -5,14 +5,42 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../lib/store';
-import { colors } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function EditProfileScreen() {
   const { user, setUser } = useStore();
+  const { colors, isDark } = useTheme();
+  const s = getStyles(colors);
   const [name, setName] = useState(user?.name || '');
   const [fakultas, setFakultas] = useState(user?.fakultas || '');
   const [loading, setLoading] = useState(false);
+
+  if (!user) {
+    return (
+      <SafeAreaView style={s.container}>
+        <View style={s.header}>
+          <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={20} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={s.title}>Edit Profil</Text>
+          <View style={{ width: 36 }} />
+        </View>
+        <View style={[s.scroll, { flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
+          <Ionicons name="lock-closed-outline" size={80} color={colors.muted} style={{ marginBottom: 16 }} />
+          <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 8 }}>
+            Belum Login
+          </Text>
+          <Text style={{ fontSize: 14, color: colors.muted, textAlign: 'center', lineHeight: 22, marginBottom: 24 }}>
+            Kamu harus masuk ke akunmu terlebih dahulu untuk mengedit profil.
+          </Text>
+          <TouchableOpacity style={s.saveBtn} onPress={() => router.push('/auth/login')}>
+            <Text style={s.saveBtnText}>Login Sekarang</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const handleSave = async () => {
     if (!name.trim()) return Alert.alert('Nama tidak boleh kosong!');
@@ -45,7 +73,7 @@ export default function EditProfileScreen() {
         <ScrollView contentContainerStyle={s.scroll}>
           <View style={s.avatarSection}>
             <View style={s.avatar}>
-              <Text style={{ fontSize: 40, fontWeight: '900', color: '#000' }}>
+              <Text style={{ fontSize: 40, fontWeight: '900', color: colors.text }}>
                 {name.charAt(0).toUpperCase() || '?'}
               </Text>
             </View>
@@ -112,19 +140,19 @@ export default function EditProfileScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 18, fontWeight: '700', color: colors.text },
   scroll: { padding: 20, paddingBottom: 60 },
   avatarSection: { alignItems: 'center', marginBottom: 28 },
-  avatar: { width: 90, height: 90, borderRadius: 45, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: colors.border },
+  avatar: { width: 90, height: 90, borderRadius: 45, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: colors.border },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   label: { fontFamily: 'Michroma', fontSize: 11, fontWeight: '700', color: colors.muted, textTransform: 'uppercase', letterSpacing: 0.8 },
   input: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 14, color: colors.text, fontSize: 14, marginBottom: 6 },
   inputDisabled: { opacity: 0.5 },
   hint: { fontSize: 11, color: colors.muted, marginBottom: 16 },
   saveBtn: { marginTop: 20, padding: 16, backgroundColor: colors.accent, borderRadius: 16, alignItems: 'center' },
-  saveBtnText: { fontSize: 16, fontWeight: '800', color: '#000' },
+  saveBtnText: { fontSize: 16, fontWeight: '800', color: colors.accentText },
 });

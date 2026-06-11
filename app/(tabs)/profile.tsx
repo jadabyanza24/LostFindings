@@ -5,11 +5,13 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../lib/store';
-import { colors } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
   const { user, setUser } = useStore();
+  const { colors, isDark, setTheme } = useTheme();
+  const s = getStyles(colors);
   const [myItems, setMyItems] = useState<any[]>([]);
   const [notifOn, setNotifOn] = useState(true);
 
@@ -33,7 +35,7 @@ export default function ProfileScreen() {
   if (!user) return (
     <SafeAreaView style={s.container} edges={['top']}>
       <View style={s.center}>
-        <Ionicons name="person-circle-outline" size={80} color={colors.border} style={{ marginBottom: 16 }} />
+        <Ionicons name="person-circle-outline" size={80} color={colors.muted} style={{ marginBottom: 16 }} />
         <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 16 }}>
           Belum Login
         </Text>
@@ -53,7 +55,7 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         <View style={s.hero}>
           <View style={s.avatar}>
-            <Text style={{ fontSize: 32, fontWeight: '900', color: '#000' }}>
+            <Text style={{ fontSize: 32, fontWeight: '900', color: colors.text }}>
               {user.name.charAt(0)}
             </Text>
           </View>
@@ -79,7 +81,7 @@ export default function ProfileScreen() {
 
           {myItems.length === 0 ? (
             <View style={s.emptyBox}>
-              <Ionicons name="document-text-outline" size={32} color={colors.border} style={{ marginBottom: 8 }} />
+              <Ionicons name="document-text-outline" size={32} color={colors.muted} style={{ marginBottom: 8 }} />
               <Text style={{ color: colors.muted, fontSize: 14 }}>
                 Belum ada laporan.
               </Text>
@@ -153,6 +155,18 @@ export default function ProfileScreen() {
               thumbColor="#fff"/>
           </View>
 
+          <View style={s.menuItem}>
+            <View style={s.menuIcon}>
+              <Ionicons name="moon" size={18} color={colors.accent} />
+            </View>
+            <Text style={{ flex: 1, fontSize: 14, fontWeight: '500', color: colors.text }}>
+              Mode Gelap
+            </Text>
+            <Switch value={isDark} onValueChange={(val) => setTheme(val ? 'dark' : 'light')}
+              trackColor={{ false: colors.border, true: colors.accent }}
+              thumbColor="#fff"/>
+          </View>
+
           {[
             ['person', 'Edit Profil', '/profile/edit'],
             ['school', 'Verifikasi Mahasiswa', '/profile/verify'],
@@ -183,13 +197,13 @@ export default function ProfileScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   loginBtn: { paddingVertical: 14, paddingHorizontal: 32, backgroundColor: colors.accent, borderRadius: 14 },
-  loginBtnText: { fontSize: 15, fontWeight: '800', color: '#000' },
+  loginBtnText: { fontSize: 15, fontWeight: '800', color: colors.accentText },
   hero: { alignItems: 'center', paddingVertical: 28, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: colors.border },
-  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', marginBottom: 12, borderWidth: 3, borderColor: colors.border },
+  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center', marginBottom: 12, borderWidth: 3, borderColor: colors.border },
   name: { fontSize: 22, fontWeight: '900', color: colors.text, marginBottom: 4 },
   nim: { fontSize: 13, color: colors.muted, marginBottom: 16 },
   statsRow: { flexDirection: 'row', gap: 32 },

@@ -5,7 +5,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../lib/store';
-import { colors } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { SkeletonRows } from '../../components/Skeleton';
 
 type ChatPreview = {
@@ -30,6 +30,8 @@ const formatTime = (isoString: string) => {
 const getLatestMessage = (messages: any[] = []) => messages[0] || null;
 
 const ChatRow = memo(function ChatRow({ chat }: { chat: ChatPreview }) {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   return (
     <TouchableOpacity
       style={[s.chatItem, chat.hasUnread && s.chatItemUnread]}
@@ -50,7 +52,7 @@ const ChatRow = memo(function ChatRow({ chat }: { chat: ChatPreview }) {
         <View style={s.previewRow}>
           <Ionicons name="pricetag" size={11} color={colors.muted} />
           <Text style={[s.preview, chat.hasUnread && s.previewUnread]} numberOfLines={1}>
-            {chat.itemName} · {chat.lastText}
+            {chat.itemName} ï¿½ {chat.lastText}
           </Text>
         </View>
       </View>
@@ -62,15 +64,15 @@ const ChatRow = memo(function ChatRow({ chat }: { chat: ChatPreview }) {
 
 export default function ChatListScreen() {
   const user = useStore(s => s.user);
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   const insets = useSafeAreaInsets();
   const [chats, setChats] = useState<ChatPreview[]>([]);
   const [loading, setLoading] = useState(true);
-  const [interactionReady, setInteractionReady] = useState(false);
   const chatIdsRef = useRef<Set<string>>(new Set());
   const mountedRef = useRef(true);
   const fetchVersionRef = useRef(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const interactionTaskRef = useRef<{ cancel?: () => void } | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -172,7 +174,7 @@ export default function ChatListScreen() {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       supabase.removeChannel(channel);
     };
-  }, [fetchChats, interactionReady, scheduleFetch, user?.id]);
+  }, [fetchChats, scheduleFetch, user?.id]);
 
   useFocusEffect(useCallback(() => {
     if (!user?.id) return;
@@ -187,11 +189,6 @@ export default function ChatListScreen() {
 
   const renderItem = useCallback(({ item }: { item: ChatPreview }) => <ChatRow chat={item} />, []);
 
-  if (!interactionReady) return (
-    <SafeAreaView style={s.container} edges={['top']}>
-      <View style={s.header}><Text style={s.title}>Percakapan</Text></View>
-    </SafeAreaView>
-  );
 
   if (loading) return (
     <SafeAreaView style={s.container} edges={['top']}>
@@ -228,7 +225,7 @@ export default function ChatListScreen() {
         getItemLayout={(_, index) => ({ length: 75, offset: 75 * index, index })}
         ListEmptyComponent={
           <View style={s.emptyBox}>
-            <Ionicons name="chatbubbles-outline" size={60} color={colors.border} style={{ marginBottom: 12 }} />
+            <Ionicons name="chatbubbles-outline" size={60} color={colors.muted} style={{ marginBottom: 12 }} />
             <Text style={s.emptyTitle}>Belum Ada Chat</Text>
             <Text style={s.emptyText}>Klaim barang atau hubungi pelapor untuk mulai chat</Text>
           </View>
@@ -238,15 +235,15 @@ export default function ChatListScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   header: { padding: 20, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
   title: { fontSize: 20, fontWeight: '800', color: colors.text },
   chatItem: { height: 75, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: colors.border },
   chatItemUnread: { backgroundColor: `${colors.accent}08` },
   avatarWrapper: { width: 46, height: 46 },
-  avatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#4a9eff', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 18, fontWeight: '900', color: '#fff' },
+  avatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: 18, fontWeight: '900', color: colors.text },
   unreadDot: { position: 'absolute', top: 0, right: 0, width: 13, height: 13, borderRadius: 7, backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.bg },
   chatBody: { flex: 1, minWidth: 0 },
   previewRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },

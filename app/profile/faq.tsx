@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 
 const FAQS = [
@@ -41,6 +41,8 @@ const FAQS = [
 ];
 
 export default function FAQScreen() {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
@@ -83,7 +85,7 @@ export default function FAQScreen() {
           <Text style={s.contactDesc}>Hubungi admin kampus di:</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
             <Ionicons name="mail" size={16} color={colors.accent} />
-            <Text style={s.contactEmail}>lostfindings@kampus.ac.id</Text>
+            <Text style={s.contactEmail}>support@lostfindings.id</Text>
           </View>
         </View>
       </ScrollView>
@@ -91,7 +93,7 @@ export default function FAQScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },

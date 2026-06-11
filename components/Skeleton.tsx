@@ -8,7 +8,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { colors } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 function useSkeletonProgress() {
   const progress = useSharedValue(0);
@@ -21,6 +21,8 @@ function useSkeletonProgress() {
 }
 
 export function SkeletonBlock({ style, progress }: { style?: ViewStyle | ViewStyle[]; progress: SharedValue<number> }) {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0, 0.5, 1], [0.42, 0.9, 0.42]),
   }));
@@ -29,6 +31,8 @@ export function SkeletonBlock({ style, progress }: { style?: ViewStyle | ViewSty
 }
 
 export function SkeletonCard() {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   const progress = useSkeletonProgress();
 
   return (
@@ -50,6 +54,8 @@ export function SkeletonCard() {
 }
 
 export function SkeletonList({ count = 5 }: { count?: number }) {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   return (
     <View style={s.list}>
       {Array.from({ length: count }).map((_, index) => (
@@ -60,6 +66,8 @@ export function SkeletonList({ count = 5 }: { count?: number }) {
 }
 
 export function SkeletonRow() {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   const progress = useSkeletonProgress();
 
   return (
@@ -74,6 +82,8 @@ export function SkeletonRow() {
 }
 
 export function SkeletonRows({ count = 6 }: { count?: number }) {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   return (
     <View style={s.list}>
       {Array.from({ length: count }).map((_, index) => (
@@ -84,6 +94,8 @@ export function SkeletonRows({ count = 6 }: { count?: number }) {
 }
 
 export function SkeletonDetail() {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   const progress = useSkeletonProgress();
 
   return (
@@ -103,9 +115,9 @@ export function SkeletonDetail() {
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   list: { paddingHorizontal: 20, paddingBottom: 100 },
-  block: { backgroundColor: 'rgba(255,255,255,0.12)' },
+  block: { backgroundColor: colors.surface2 },
   card: {
     flexDirection: 'row', minHeight: 100, backgroundColor: colors.surface,
     borderWidth: 1, borderColor: colors.border, borderRadius: 16,

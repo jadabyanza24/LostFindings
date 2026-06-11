@@ -1,10 +1,11 @@
 import { memo, useEffect, useState, useRef } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert, Image, ActivityIndicator, Modal } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../lib/store';
-import { colors } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { SkeletonDetail, SkeletonList, SkeletonRows } from '../../components/Skeleton';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -13,7 +14,10 @@ const ChatMessageBubble = memo(function ChatMessageBubble({ msg, userId, formatT
   userId?: string;
   formatTime: (isoString: string) => string;
 }) {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   const isMine = msg.sender_id === userId;
+  const [modalVisible, setModalVisible] = useState(false);
   const isSystem = msg.text?.includes('sudah konfirmasi') || msg.text?.includes('menolak jadwal') || msg.text?.includes('menerima jadwal');
 
   if (isSystem) return (
@@ -22,10 +26,49 @@ const ChatMessageBubble = memo(function ChatMessageBubble({ msg, userId, formatT
     </View>
   );
 
+  const isImage = msg.text?.startsWith('[IMAGE]:');
+  const imageUrl = isImage ? msg.text.substring(8) : null;
+
+  if (isImage && imageUrl) {
+    return (
+      <View style={[s.msgRow, isMine && { alignSelf: 'flex-end', alignItems: 'flex-end' }]}>
+        <TouchableOpacity 
+          activeOpacity={0.9} 
+          onPress={() => setModalVisible(true)}
+          style={[s.imageBubble, isMine ? s.imageBubbleMine : s.imageBubbleOther]}
+        >
+          <Image source={{ uri: imageUrl }} style={s.chatImage} resizeMode="cover" />
+        </TouchableOpacity>
+        <Text style={s.msgTime}>{formatTime(msg.created_at)}</Text>
+
+        <Modal
+          visible={modalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <TouchableOpacity 
+            style={s.modalBackground} 
+            activeOpacity={1} 
+            onPress={() => setModalVisible(false)}
+          >
+            <TouchableOpacity 
+              style={s.closeButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Ionicons name="close" size={28} color="#fff" />
+            </TouchableOpacity>
+            <Image source={{ uri: imageUrl }} style={s.fullImage} resizeMode="contain" />
+          </TouchableOpacity>
+        </Modal>
+      </View>
+    );
+  }
+
   return (
     <View style={[s.msgRow, isMine && { alignSelf: 'flex-end', alignItems: 'flex-end' }]}>
       <View style={[s.bubble, isMine ? s.bubbleMine : s.bubbleOther]}>
-        <Text style={[s.bubbleText, isMine && { color: '#000' }]}>{msg.text}</Text>
+        <Text style={[s.bubbleText, isMine && { color: colors.accentText }]}>{msg.text}</Text>
       </View>
       <Text style={s.msgTime}>{formatTime(msg.created_at)}</Text>
     </View>
@@ -39,7 +82,92 @@ const mergeUniqueMessages = (current: any[], incoming: any[]) => {
   });
   return [...map.values()].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 };
+const getAppointmentIdFromMessage = (text?: string) => {
+  if (!text?.startsWith('JADWAL_JANJIAN:')) return null;
+  return text.replace('JADWAL_JANJIAN:', '').trim();
+};
+
+const AppointmentCard = memo(function AppointmentCard({ appt, isMine, canRespond, onRespond }: {
+  appt: any;
+  isMine: boolean;
+  canRespond: boolean;
+  onRespond: (status: 'accepted' | 'declined') => void;
+}) {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
+  if (!appt) {
+    return (
+      <View style={s.apptCard}>
+        <Text style={s.apptTitle}>Jadwal Janjian</Text>
+        <Text style={s.apptLabel}>Detail jadwal belum tersedia.</Text>
+      </View>
+    );
+  }
+
+  const dateText = appt.date ? String(appt.date).split('-').reverse().join('/') : '-';
+  const status = appt.status || 'pending';
+
+  return (
+    <View style={s.apptCard}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 12 }}>
+        <Ionicons name="calendar" size={16} color={colors.accent} />
+        <Text style={s.apptTitle}>Jadwal Janjian</Text>
+      </View>
+
+      <View style={s.apptRow}>
+        <Text style={s.apptLabel}>Tanggal</Text>
+        <Text style={s.apptValue}>{dateText}</Text>
+      </View>
+      <View style={s.apptRow}>
+        <Text style={s.apptLabel}>Waktu</Text>
+        <Text style={s.apptValue}>{appt.time || '-'} WIB</Text>
+      </View>
+      <View style={s.apptRow}>
+        <Text style={s.apptLabel}>Lokasi</Text>
+        <Text style={s.apptValue}>{appt.location || '-'}</Text>
+      </View>
+
+      {status === 'pending' && canRespond && (
+        <View style={s.apptActions}>
+          <TouchableOpacity style={s.apptAccept} onPress={() => onRespond('accepted')}>
+            <Ionicons name="checkmark" size={16} color="#000" />
+            <Text style={{ fontSize: 13, fontWeight: '800', color: '#000', marginLeft: 4 }}>Terima</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.apptDecline} onPress={() => onRespond('declined')}>
+            <Ionicons name="close" size={16} color={colors.red} />
+            <Text style={{ fontSize: 13, fontWeight: '800', color: colors.red, marginLeft: 4 }}>Tolak</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {status === 'pending' && !canRespond && (
+        <View style={s.apptPending}>
+          <Ionicons name="time" size={14} color={colors.accent} />
+          <Text style={{ fontSize: 12, fontWeight: '700', color: colors.accent, marginLeft: 4 }}>
+            {isMine ? 'Menunggu konfirmasi' : 'Menunggu respons'}
+          </Text>
+        </View>
+      )}
+
+      {status === 'accepted' && (
+        <View style={s.apptAccepted}>
+          <Ionicons name="checkmark-circle" size={14} color={colors.green} />
+          <Text style={{ fontSize: 12, fontWeight: '700', color: colors.green, marginLeft: 4 }}>Jadwal diterima</Text>
+        </View>
+      )}
+
+      {status === 'declined' && (
+        <View style={s.apptDeclined}>
+          <Ionicons name="close-circle" size={14} color={colors.red} />
+          <Text style={{ fontSize: 12, fontWeight: '700', color: colors.red, marginLeft: 4 }}>Jadwal ditolak</Text>
+        </View>
+      )}
+    </View>
+  );
+});
 export default function ChatRoomScreen() {
+  const { colors, isDark } = useTheme();
+  const s = getStyles(colors);
   const { id } = useLocalSearchParams<{ id: string }>();
   const user = useStore(s => s.user);
   const [chat, setChat] = useState<any>(null);
@@ -47,6 +175,7 @@ export default function ChatRoomScreen() {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const flatRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -146,8 +275,111 @@ export default function ChatRoomScreen() {
     await supabase.from('notifications').insert({
       user_id: otherUserId, type: 'msg',
       title: `Pesan dari ${user.name}`,
-      body: text.length > 50 ? text.substring(0, 50) + '...' : text, read: false });
+      body: (text.length > 50 ? text.substring(0, 50) + '...' : text) + ` [chat_id:${id}]`,
+      read: false
+    });
     setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
+  };
+
+  const uploadAndSendImage = async (uri: string) => {
+    if (!user) return;
+    setUploadingImage(true);
+    const tempId = `temp-${Date.now()}`;
+    const tempMsg = {
+      id: tempId,
+      chat_id: id,
+      sender_id: user.id,
+      text: `[IMAGE]:${uri}`,
+      created_at: new Date().toISOString()
+    };
+    setMessages(prev => mergeUniqueMessages(prev, [tempMsg]));
+    
+    try {
+      const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+      const fileName = `chat-${id}-${Date.now()}.${ext}`;
+      const contentType = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`;
+
+      const response = await fetch(uri);
+      const arrayBuffer = await response.arrayBuffer();
+
+      const { error: uploadError } = await supabase.storage
+        .from('item-images')
+        .upload(fileName, arrayBuffer, { contentType, upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('item-images')
+        .getPublicUrl(fileName);
+
+      const imageUrl = urlData.publicUrl;
+      const text = `[IMAGE]:${imageUrl}`;
+
+      const { data: sentMsg } = await supabase.from('messages')
+        .insert({ chat_id: id, sender_id: user.id, text })
+        .select().single();
+
+      if (sentMsg) {
+        setMessages(prev => prev.map(m => m.id === tempId ? sentMsg : m));
+      }
+      
+      const otherUserId = chat?.user1?.id === user.id ? chat?.user2?.id : chat?.user1?.id;
+      await supabase.from('notifications').insert({
+        user_id: otherUserId,
+        type: 'msg',
+        title: `Pesan foto dari ${user.name}`,
+        body: `Mengirimkan sebuah foto. [chat_id:${id}]`,
+        read: false
+      });
+
+      setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
+    } catch (err: any) {
+      console.error(err);
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      Alert.alert('Gagal mengirim foto', err.message || 'Terjadi kesalahan');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const pickImage = () => {
+    Alert.alert(
+      'Kirim Foto',
+      'Pilih sumber foto:',
+      [
+        {
+          text: 'Kamera',
+          onPress: async () => {
+            const permission = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permission.granted) return Alert.alert('Permission diperlukan', 'Izinkan akses kamera.');
+
+            const result = await ImagePicker.launchCameraAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              quality: 0.6,
+            });
+            if (!result.canceled) {
+              uploadAndSendImage(result.assets[0].uri);
+            }
+          },
+        },
+        {
+          text: 'Galeri',
+          onPress: async () => {
+            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!permission.granted) return Alert.alert('Permission diperlukan', 'Izinkan akses galeri.');
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              quality: 0.6,
+            });
+            if (!result.canceled) {
+              uploadAndSendImage(result.assets[0].uri);
+            }
+          },
+        },
+        { text: 'Batal', style: 'cancel' }
+      ]
+    );
   };
 
   const handleCancel = async () => {
@@ -187,7 +419,7 @@ export default function ChatRoomScreen() {
         await supabase.from('notifications').insert({
           user_id: otherUserId, type: 'claim',
           title: 'Klaim Dibatalkan',
-          body: `${user!.name} membatalkan klaim "${chat.items?.name}".`,
+          body: `${user!.name} membatalkan klaim "${chat.items?.name}". [chat_id:${id}]`,
           read: false });
 
         fetchChat();
@@ -200,7 +432,10 @@ export default function ChatRoomScreen() {
   const handleConfirm = async () => {
     if (!user || !chat) return;
     const itemOwnerId = chat.items?.user_id;
-    const isFinder = user.id === itemOwnerId;
+    const isItemFoundType = chat.items?.type === 'found';
+    const isFinder = isItemFoundType
+      ? user.id === itemOwnerId
+      : user.id !== itemOwnerId;
     console.log('=== DEBUG KONFIRMASI ===');
     console.log('user.id:', user.id);
     console.log('itemOwnerId:', itemOwnerId);
@@ -227,8 +462,8 @@ export default function ChatRoomScreen() {
             await supabase.from('items').update({ status: 'claimed' }).eq('id', chat.items?.id);
             const otherUserId = chat?.user1?.id === user.id ? chat?.user2?.id : chat?.user1?.id;
             await supabase.from('notifications').insert([
-              { user_id: user.id, type: 'match', title: 'Barang Berhasil Dikembalikan!', body: `"${chat.items?.name}" sudah diserahterimakan.`, read: false },
-              { user_id: otherUserId, type: 'match', title: 'Barang Berhasil Dikembalikan!', body: `"${chat.items?.name}" sudah diserahterimakan.`, read: false }
+              { user_id: user.id, type: 'match', title: 'Barang Berhasil Dikembalikan!', body: `"${chat.items?.name}" sudah diserahterimakan. [chat_id:${id}]`, read: false },
+              { user_id: otherUserId, type: 'match', title: 'Barang Berhasil Dikembalikan!', body: `"${chat.items?.name}" sudah diserahterimakan. [chat_id:${id}]`, read: false }
             ]);
             Alert.alert('Selesai!', 'Terima kasih sudah menggunakan aplikasi ini!', [
               { text: 'OK', onPress: () => router.replace('/(tabs)') }
@@ -238,7 +473,7 @@ export default function ChatRoomScreen() {
             await supabase.from('notifications').insert({
               user_id: otherUserId, type: 'claim',
               title: 'Menunggu Konfirmasimu!',
-              body: `${user.name} sudah konfirmasi serah terima "${chat.items?.name}".`, read: false });
+              body: `${user.name} sudah konfirmasi serah terima "${chat.items?.name}". [chat_id:${id}]`, read: false });
             await supabase.from('messages').insert({
               chat_id: id, sender_id: user.id,
               text: `${user.name} sudah konfirmasi serah terima barang.` });
@@ -262,7 +497,10 @@ export default function ChatRoomScreen() {
 
   const otherUser = chat?.user1?.id === user?.id ? chat?.user2 : chat?.user1;
   const itemOwnerId = chat?.items?.user_id;
-  const isFinder = user?.id === itemOwnerId;
+  const isItemFoundType = chat?.items?.type === 'found';
+  const isFinder = user?.id && itemOwnerId
+    ? (isItemFoundType ? user.id === itemOwnerId : user.id !== itemOwnerId)
+    : false;
   const myConfirmed = isFinder ? chat?.confirmed_by_finder : chat?.confirmed_by_owner;
   const isCompleted = chat?.completed;
 
@@ -275,7 +513,7 @@ export default function ChatRoomScreen() {
         <Ionicons name="arrow-back" size={20} color={colors.text} />
         </TouchableOpacity>
         <View style={s.chatAvatar}>
-          <Text style={{ fontSize: 16, fontWeight: '900', color: '#fff' }}>
+          <Text style={{ fontSize: 16, fontWeight: '900', color: colors.text }}>
             {otherUser?.name?.charAt(0) || '?'}
           </Text>
         </View>
@@ -389,7 +627,7 @@ export default function ChatRoomScreen() {
               <Ionicons 
                 name="chatbubbles-outline" 
                 size={60} 
-                color={colors.border}
+                color={colors.muted}
                 style={{ marginBottom: 12 }} 
               />
               <Text style={{ color: colors.muted, fontSize: 14, textAlign: 'center' }}>
@@ -398,12 +636,36 @@ export default function ChatRoomScreen() {
             </View>
           }
           renderItem={({ item: msg }) => {
+            const appointmentId = getAppointmentIdFromMessage(msg.text);
+
+            if (appointmentId) {
+              const appt = appointments.find(a => a.id === appointmentId);
+              const isMine = msg.sender_id === user?.id;
+              const canRespond = !!appt && appt.status === 'pending' && appt.proposed_by !== user?.id;
+
+              return (
+                <AppointmentCard
+                  appt={appt}
+                  isMine={isMine}
+                  canRespond={canRespond}
+                  onRespond={(status) => handleAppointmentResponse(appointmentId, status)}
+                />
+              );
+            }
+
             return <ChatMessageBubble msg={msg} userId={user?.id} formatTime={formatTime} />;
           }}
         />
 
         {!isCompleted && (
           <View style={s.inputRow}>
+            {uploadingImage ? (
+              <ActivityIndicator size="small" color={colors.accent} style={{ padding: 10 }} />
+            ) : (
+              <TouchableOpacity style={s.attachBtn} onPress={pickImage}>
+                <Ionicons name="camera-outline" size={22} color={colors.text} />
+              </TouchableOpacity>
+            )}
             <TextInput
               style={s.inputBox}
               placeholder="Ketik pesan..."
@@ -415,7 +677,7 @@ export default function ChatRoomScreen() {
               multiline
             />
             <TouchableOpacity style={s.sendBtn} onPress={sendMessage}>
-              <Ionicons name="send" size={18} color="#000" />
+              <Ionicons name="send" size={18} color={colors.accentText} />
             </TouchableOpacity>
           </View>
         )}
@@ -430,12 +692,12 @@ export default function ChatRoomScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  chatAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#4a9eff', alignItems: 'center', justifyContent: 'center' },
+  chatAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' },
   chatName: { fontSize: 15, fontWeight: '700', color: colors.text },
   chatItem: { fontSize: 11, color: colors.muted },
   confirmBanner: { marginHorizontal: 12, marginTop: 8, padding: 12, backgroundColor: 'rgba(240,165,0,0.1)', borderWidth: 1, borderColor: colors.accent, borderRadius: 10 },
@@ -470,7 +732,15 @@ const s = StyleSheet.create({
   apptDecline: { flex: 1, flexDirection: 'row', padding: 10, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.red, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   apptAccepted: { marginTop: 10, padding: 8, backgroundColor: 'rgba(46,204,138,0.1)', borderRadius: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
   apptDeclined: { marginTop: 10, padding: 8, backgroundColor: 'rgba(224,92,92,0.1)', borderRadius: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
-  apptPending: { marginTop: 10, padding: 8, backgroundColor: colors.surface2, borderRadius: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' } });
+  apptPending: { marginTop: 10, padding: 8, backgroundColor: colors.surface2, borderRadius: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
+  attachBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' },
+  imageBubble: { borderRadius: 16, overflow: 'hidden', maxWidth: '70%', borderWidth: 1, borderColor: colors.border },
+  imageBubbleMine: { backgroundColor: colors.accent, borderBottomRightRadius: 4 },
+  imageBubbleOther: { backgroundColor: colors.surface, borderBottomLeftRadius: 4 },
+  chatImage: { width: 200, height: 150 },
+  modalBackground: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
+  closeButton: { position: 'absolute', top: 40, right: 20, zIndex: 10, padding: 10 },
+  fullImage: { width: '100%', height: '80%' } });
 
 
 

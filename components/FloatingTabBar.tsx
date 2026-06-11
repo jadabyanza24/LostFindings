@@ -3,7 +3,7 @@ import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 import { useVerification } from '../lib/useVerification';
 
 const TAB_BAR_HEIGHT = 64;
@@ -21,6 +21,8 @@ const ICONS: Record<string, { active: keyof typeof Ionicons.glyphMap; inactive: 
 export default function FloatingTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const { requireVerified } = useVerification();
+  const { colors, isDark } = useTheme();
+  const s = getStyles(colors);
   const [barWidth, setBarWidth] = useState(0);
   const indicatorX = useRef(new Animated.Value(0)).current;
   const scales = useRef<Record<string, Animated.Value>>({}).current;
@@ -76,12 +78,25 @@ export default function FloatingTabBar({ state, descriptors, navigation }: any) 
   return (
     <View
       onLayout={event => setBarWidth(event.nativeEvent.layout.width)}
-      style={[s.container, { bottom: Math.max(insets.bottom, 8) + 6 }]}
+      style={[
+        s.container,
+        {
+          bottom: Math.max(insets.bottom, 8) + 6,
+          backgroundColor: isDark ? 'rgba(30, 30, 30, 0.9)' : 'rgba(255, 255, 255, 0.95)',
+          borderColor: colors.border,
+        }
+      ]}
     >
       {barWidth > 0 && (
         <Animated.View
           pointerEvents="none"
-          style={[s.indicator, { transform: [{ translateX: indicatorX }] }]}
+          style={[
+            s.indicator,
+            {
+              transform: [{ translateX: indicatorX }],
+              backgroundColor: isDark ? 'rgba(129, 199, 132, 0.15)' : 'rgba(46, 125, 50, 0.08)',
+            }
+          ]}
         />
       )}
 
@@ -89,7 +104,11 @@ export default function FloatingTabBar({ state, descriptors, navigation }: any) 
         const isFocused = route.key === activeRoute?.key;
         const isPost = route.name === 'post';
         const icon = isPost ? 'add' : isFocused ? ICONS[route.name]?.active : ICONS[route.name]?.inactive;
-        const color = isPost ? '#111322' : isFocused ? colors.accent : 'rgba(226,228,240,0.58)';
+        const color = isPost 
+          ? (isDark ? '#121212' : '#ffffff') 
+          : isFocused 
+            ? colors.primary 
+            : (isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(27, 94, 32, 0.4)');
 
         return (
           <Pressable
@@ -102,7 +121,7 @@ export default function FloatingTabBar({ state, descriptors, navigation }: any) 
             <Animated.View
               style={[
                 s.iconWrap,
-                isPost && s.postButton,
+                isPost && [s.postButton, { backgroundColor: colors.primary, borderColor: colors.primary, shadowColor: colors.primary }],
                 { transform: [{ scale: scales[route.key] || 1 }] },
               ]}
             >
@@ -115,7 +134,7 @@ export default function FloatingTabBar({ state, descriptors, navigation }: any) 
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     position: 'absolute',
     left: HORIZONTAL_INSET,
@@ -127,15 +146,13 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-evenly',
-    backgroundColor: 'rgba(34,36,58,0.78)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
     borderRadius: TAB_BAR_HEIGHT / 2,
     shadowColor: '#000',
-    shadowOpacity: 0.28,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 18,
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
   indicator: {
     position: 'absolute',
@@ -144,7 +161,6 @@ const s = StyleSheet.create({
     width: INDICATOR_SIZE,
     height: INDICATOR_SIZE,
     borderRadius: INDICATOR_SIZE / 2,
-    backgroundColor: 'rgba(170,180,240,0.18)',
   },
   item: {
     flex: 1,
@@ -165,14 +181,12 @@ const s = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 27,
-    backgroundColor: colors.accent,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
-    shadowColor: colors.accent,
-    shadowOpacity: 0.42,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 12,
+    borderColor: 'rgba(255,255,255,0.3)',
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
 });
 

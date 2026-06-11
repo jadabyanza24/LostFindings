@@ -3,11 +3,13 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, TextInput } 
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
-import { colors } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { SkeletonDetail, SkeletonList, SkeletonRows } from '../../components/Skeleton';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function AdminUsersScreen() {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -43,8 +45,21 @@ export default function AdminUsersScreen() {
     Alert.alert('Hapus User?', `Hapus akun ${user.name} secara permanen?`, [
       { text: 'Batal', style: 'cancel' },
       { text: 'Hapus', style: 'destructive', onPress: async () => {
-        await supabase.from('users').delete().eq('id', user.id);
-        fetchUsers();
+        // Delete verification record first to prevent foreign key constraint violation
+        const { error: verifError } = await supabase.from('verifications').delete().eq('user_id', user.id);
+        if (verifError) {
+          Alert.alert('Gagal Hapus Verifikasi', verifError.message);
+          return;
+        }
+
+        // Delete user profile
+        const { error: userError } = await supabase.from('users').delete().eq('id', user.id);
+        if (userError) {
+          Alert.alert('Gagal Hapus User', userError.message);
+        } else {
+          Alert.alert('Berhasil', 'User berhasil dihapus.');
+          fetchUsers();
+        }
       }}
     ]);
   };
@@ -94,7 +109,7 @@ export default function AdminUsersScreen() {
         renderItem={({ item: u }) => (
           <View style={[s.userCard, u.is_banned && s.userCardBanned]}>
             <View style={s.userAvatar}>
-              <Text style={{ fontSize: 16, fontWeight: '900', color: '#000' }}>
+              <Text style={{ fontSize: 16, fontWeight: '900', color: colors.text }}>
                 {u.name?.charAt(0) || '?'}
               </Text>
             </View>
@@ -134,7 +149,7 @@ export default function AdminUsersScreen() {
         )}
         ListEmptyComponent={
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="people-outline" size={60} color={colors.border} style={{ marginBottom: 12 }} />
+            <Ionicons name="people-outline" size={60} color={colors.muted} style={{ marginBottom: 12 }} />
             <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>
               User tidak ditemukan
             </Text>
@@ -145,7 +160,7 @@ export default function AdminUsersScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
@@ -155,7 +170,7 @@ const s = StyleSheet.create({
   searchInput: { flex: 1, color: colors.text, fontSize: 14 },
   userCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 14, marginBottom: 10 },
   userCardBanned: { opacity: 0.6, borderColor: colors.red },
-  userAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  userAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' },
   userName: { fontSize: 14, fontWeight: '700', color: colors.text },
   userNim: { fontSize: 12, color: colors.muted, marginTop: 2 },
   userEmail: { fontSize: 11, color: colors.muted },

@@ -5,7 +5,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../lib/store';
-import { colors } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useVerification } from '../../lib/useVerification';
 import ItemCardSkeleton from '../../components/ItemCardSkeleton';
@@ -14,6 +14,8 @@ import ItemCardSkeleton from '../../components/ItemCardSkeleton';
 const KATEGORI = ['Semua', 'Elektronik', 'Dompet', 'Kunci', 'Kartu', 'Tas', 'Lainnya'];
 
 const HomeItemCard = memo(function HomeItemCard({ item }: { item: any }) {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   const imageUrl = item.image_url?.includes(',')
     ? item.image_url.split(',')[0]
     : item.image_url;
@@ -64,6 +66,8 @@ const HomeItemCard = memo(function HomeItemCard({ item }: { item: any }) {
 export default function HomeScreen() {
   const user = useStore(s => s.user);
   const setUser = useStore(s => s.setUser);
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   const { isVerified } = useVerification();
 
   const [dataBarang, setDataBarang] = useState<any[]>([]);
@@ -123,13 +127,13 @@ export default function HomeScreen() {
             <Text style={s.subGreeting}>Ada yang hilang atau ketemu hari ini?</Text>
           </View>
           <TouchableOpacity style={s.avatar} onPress={() => router.push('/(tabs)/profile')}>
-            <Text style={{ fontSize: 18, fontWeight: '900', color: '#000' }}>
+            <Text style={{ fontSize: 18, fontWeight: '900', color: colors.text }}>
               {user?.name?.charAt(0) || '?'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {!isVerified && (
+        {user && !isVerified && (
           <TouchableOpacity
             style={s.verifBanner}
             onPress={() => router.push('/profile/verify')}>
@@ -178,7 +182,7 @@ export default function HomeScreen() {
               key={c}
               style={[s.catBadge, kategoriAktif === c && s.catBadgeActive]}
               onPress={() => setKategoriAktif(c)}>
-              <Text style={[s.catText, kategoriAktif === c && { color: '#000', fontWeight: '800' }]}>
+              <Text style={[s.catText, kategoriAktif === c && { color: colors.accentText, fontWeight: '800' }]}>
                 {c}
               </Text>
             </TouchableOpacity>
@@ -203,7 +207,7 @@ export default function HomeScreen() {
         renderItem={({ item }) => loading ? <ItemCardSkeleton /> : <HomeItemCard item={item} />}
         ListEmptyComponent={!loading ? (
           <View style={s.emptyBox}>
-            <Ionicons name="search-outline" size={60} color={colors.border} style={{ marginBottom: 12 }} />
+            <Ionicons name="search-outline" size={60} color={colors.muted} style={{ marginBottom: 12 }} />
             <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>Barang tidak ditemukan</Text>
             <Text style={{ fontSize: 13, color: colors.muted, marginTop: 4 }}>Coba ubah kata kunci atau kategori</Text>
           </View>
@@ -213,13 +217,13 @@ export default function HomeScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   topSection: { paddingHorizontal: 20, paddingTop: 20 },
   greetingBox: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   greetingText: { fontSize: 24, fontWeight: '900', color: colors.text, marginBottom: 4 },
   subGreeting: { fontSize: 14, color: colors.muted },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' },
   verifBanner: { backgroundColor: 'rgba(240, 165, 0, 0.1)', borderWidth: 1, borderColor: colors.accent, borderRadius: 14, padding: 16, marginBottom: 20 },
   searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 50, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 20 },
   searchInput: { flex: 1, color: colors.text, fontSize: 14 },

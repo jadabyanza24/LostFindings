@@ -3,10 +3,12 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet,
   Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
-import { colors } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function RegisterScreen() {
+  const { colors, isDark } = useTheme();
+  const s = getStyles(colors);
   const [name, setName] = useState('');
   const [nim, setNim] = useState('');
   const [fakultas, setFakultas] = useState('');
@@ -21,9 +23,12 @@ export default function RegisterScreen() {
     try {
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
-      await supabase.from('users').insert({
+      
+      const { error: dbError } = await supabase.from('users').insert({
         id: data.user!.id, name, nim, email, fakultas,
       });
+      if (dbError) throw dbError;
+
       Alert.alert('Berhasil!', 'Akun kamu sudah dibuat!', [
         { text: 'Login', onPress: () => router.replace('/auth/login') }
       ]);
@@ -76,7 +81,7 @@ export default function RegisterScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   scroll: { padding: 28, paddingTop: 60 },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
   title: { fontSize: 30, fontWeight: '900', color: colors.text, marginBottom: 4 },
@@ -84,5 +89,5 @@ const s = StyleSheet.create({
   label: { fontSize: 12, fontWeight: '600', color: colors.muted, marginBottom: 6 },
   input: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 14, color: colors.text, fontSize: 14 },
   btn: { padding: 16, backgroundColor: colors.accent, borderRadius: 14, alignItems: 'center', marginTop: 8 },
-  btnText: { fontSize: 16, fontWeight: '800', color: '#000' },
+  btnText: { fontSize: 16, fontWeight: '800', color: colors.accentText },
 });

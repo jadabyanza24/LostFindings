@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 const CATEGORY_ICONS: Record<string, any> = {
   elektronik: 'phone-portrait',
@@ -12,6 +12,8 @@ const CATEGORY_ICONS: Record<string, any> = {
 };
 
 export default function ItemCard({ item, onPress }: { item: any; onPress: () => void }) {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   const isFound = item.type === 'found';
   const isClaimed = item.status === 'claimed';
   return (
@@ -61,7 +63,7 @@ export default function ItemCard({ item, onPress }: { item: any; onPress: () => 
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   card: { flexDirection: 'row', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 16, overflow: 'hidden', marginBottom: 2 },
   imgBox: { width: 90, height: 90 },
   iconBox: { width: 90, height: 90, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' },

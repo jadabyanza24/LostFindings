@@ -4,10 +4,12 @@ import { View, Text, TextInput, TouchableOpacity,
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
-import { colors } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function ChangePasswordScreen() {
+  const { colors, isDark } = useTheme();
+  const s = getStyles(colors);
   const [current, setCurrent] = useState('');
   const [newPass, setNewPass] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -87,7 +89,7 @@ export default function ChangePasswordScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
@@ -99,5 +101,5 @@ const s = StyleSheet.create({
   label: { fontFamily: 'Michroma', fontSize: 11, fontWeight: '700', color: colors.muted, textTransform: 'uppercase', letterSpacing: 0.8 },
   input: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 14, color: colors.text, fontSize: 14, marginBottom: 16 },
   btn: { marginTop: 8, padding: 16, backgroundColor: colors.accent, borderRadius: 16, alignItems: 'center' },
-  btnText: { fontSize: 16, fontWeight: '800', color: '#000' },
+  btnText: { fontSize: 16, fontWeight: '800', color: colors.accentText },
 });

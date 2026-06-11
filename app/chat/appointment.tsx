@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Alert, ScrollView, Platform } from 'react-native';
+  StyleSheet, Alert, ScrollView, Platform, Modal } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../lib/store';
-import { colors } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 
 
 export default function AppointmentScreen() {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   const { chatId, itemName, otherName } = useLocalSearchParams<{
     chatId: string; itemName: string; otherName: string;
   }>();
@@ -98,29 +100,106 @@ export default function AppointmentScreen() {
           <Text style={s.pickerText}>{time} WIB</Text>
         </TouchableOpacity>
 
-        {showDatePicker && (
-          <DateTimePicker
-            value={selectedDateTime}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            minimumDate={new Date()}
-            onChange={(_, nextDate) => {
-              if (Platform.OS !== 'ios') setShowDatePicker(false);
-              if (nextDate) setSelectedDateTime(prev => new Date(nextDate.getFullYear(), nextDate.getMonth(), nextDate.getDate(), prev.getHours(), prev.getMinutes()));
-            }}
-          />
+        {/* iOS Date Picker Modal */}
+        {Platform.OS === 'ios' ? (
+          <Modal
+            visible={showDatePicker}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowDatePicker(false)}
+          >
+            <TouchableOpacity 
+              style={s.modalBackdrop} 
+              activeOpacity={1} 
+              onPress={() => setShowDatePicker(false)}
+            >
+              <View style={s.modalContainer}>
+                <View style={s.modalHeader}>
+                  <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                    <Text style={s.modalCancelText}>Batal</Text>
+                  </TouchableOpacity>
+                  <Text style={s.modalTitle}>Pilih Tanggal</Text>
+                  <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                    <Text style={s.modalDoneText}>Selesai</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={selectedDateTime}
+                  mode="date"
+                  display="spinner"
+                  textColor={colors.text}
+                  minimumDate={new Date()}
+                  onChange={(_, nextDate) => {
+                    if (nextDate) setSelectedDateTime(prev => new Date(nextDate.getFullYear(), nextDate.getMonth(), nextDate.getDate(), prev.getHours(), prev.getMinutes()));
+                  }}
+                />
+              </View>
+            </TouchableOpacity>
+          </Modal>
+        ) : (
+          showDatePicker && (
+            <DateTimePicker
+              value={selectedDateTime}
+              mode="date"
+              display="default"
+              minimumDate={new Date()}
+              onChange={(_, nextDate) => {
+                setShowDatePicker(false);
+                if (nextDate) setSelectedDateTime(prev => new Date(nextDate.getFullYear(), nextDate.getMonth(), nextDate.getDate(), prev.getHours(), prev.getMinutes()));
+              }}
+            />
+          )
         )}
-        {showTimePicker && (
-          <DateTimePicker
-            value={selectedDateTime}
-            mode="time"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            minuteInterval={1}
-            onChange={(_, nextTime) => {
-              if (Platform.OS !== 'ios') setShowTimePicker(false);
-              if (nextTime) setSelectedDateTime(prev => new Date(prev.getFullYear(), prev.getMonth(), prev.getDate(), nextTime.getHours(), nextTime.getMinutes()));
-            }}
-          />
+
+        {/* iOS Time Picker Modal */}
+        {Platform.OS === 'ios' ? (
+          <Modal
+            visible={showTimePicker}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowTimePicker(false)}
+          >
+            <TouchableOpacity 
+              style={s.modalBackdrop} 
+              activeOpacity={1} 
+              onPress={() => setShowTimePicker(false)}
+            >
+              <View style={s.modalContainer}>
+                <View style={s.modalHeader}>
+                  <TouchableOpacity onPress={() => setShowTimePicker(false)}>
+                    <Text style={s.modalCancelText}>Batal</Text>
+                  </TouchableOpacity>
+                  <Text style={s.modalTitle}>Pilih Waktu</Text>
+                  <TouchableOpacity onPress={() => setShowTimePicker(false)}>
+                    <Text style={s.modalDoneText}>Selesai</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={selectedDateTime}
+                  mode="time"
+                  display="spinner"
+                  textColor={colors.text}
+                  minuteInterval={1}
+                  onChange={(_, nextTime) => {
+                    if (nextTime) setSelectedDateTime(prev => new Date(prev.getFullYear(), prev.getMonth(), prev.getDate(), nextTime.getHours(), nextTime.getMinutes()));
+                  }}
+                />
+              </View>
+            </TouchableOpacity>
+          </Modal>
+        ) : (
+          showTimePicker && (
+            <DateTimePicker
+              value={selectedDateTime}
+              mode="time"
+              display="default"
+              minuteInterval={1}
+              onChange={(_, nextTime) => {
+                setShowTimePicker(false);
+                if (nextTime) setSelectedDateTime(prev => new Date(prev.getFullYear(), prev.getMonth(), prev.getDate(), nextTime.getHours(), nextTime.getMinutes()));
+              }}
+            />
+          )
         )}
 
         <View style={[s.labelRow, { marginTop: 20 }]}>
@@ -169,7 +248,7 @@ export default function AppointmentScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
@@ -200,5 +279,11 @@ const s = StyleSheet.create({
   previewItem: { fontSize: 14, color: colors.text, fontWeight: '500' },
   submitBtn: { marginTop: 20, padding: 16, backgroundColor: colors.accent, borderRadius: 16, alignItems: 'center' },
   submitText: { fontSize: 16, fontWeight: '800', color: '#000' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'flex-end' },
+  modalContainer: { backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 40, borderTopWidth: 1, borderTopColor: colors.border },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
+  modalTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
+  modalCancelText: { fontSize: 15, color: colors.muted },
+  modalDoneText: { fontSize: 15, fontWeight: '700', color: colors.accent },
 });
 

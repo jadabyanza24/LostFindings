@@ -4,9 +4,11 @@ import { View, Text, TextInput, TouchableOpacity,
 import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../lib/store';
-import { colors } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function LoginScreen() {
+  const { colors, isDark } = useTheme();
+  const s = getStyles(colors);
   const setUser = useStore(s => s.setUser);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,10 +21,15 @@ export default function LoginScreen() {
     if (error) {
       Alert.alert('Login Gagal', error.message);
     } else {
-      const { data: userData } = await supabase
+      const { data: userData, error: dbError } = await supabase
         .from('users').select('*').eq('id', data.user.id).single();
-      if (userData) setUser(userData);
-      router.replace('/(tabs)');
+      
+      if (dbError || !userData) {
+        router.replace('/auth/complete-profile');
+      } else {
+        setUser(userData);
+        router.replace('/(tabs)');
+      }
     }
     setLoading(false);
   };
@@ -58,13 +65,13 @@ export default function LoginScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   inner: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   logo: { fontSize: 36, fontWeight: '900', color: colors.accent, marginBottom: 4 },
   subtitle: { fontSize: 14, color: colors.muted, marginBottom: 40 },
   input: { width: '100%', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 14, color: colors.text, fontSize: 14, marginBottom: 12 },
   btn: { width: '100%', padding: 16, backgroundColor: colors.accent, borderRadius: 14, alignItems: 'center', marginTop: 8, marginBottom: 20 },
-  btnText: { fontSize: 16, fontWeight: '800', color: '#000' },
+  btnText: { fontSize: 16, fontWeight: '800', color: colors.accentText },
   link: { fontSize: 14, color: colors.muted },
 });

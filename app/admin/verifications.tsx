@@ -3,11 +3,13 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, Image } from
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
-import { colors } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { SkeletonDetail, SkeletonList, SkeletonRows } from '../../components/Skeleton';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function AdminVerificationsScreen() {
+  const { colors, isDark } = useTheme();
+  const s = getStyles(colors);
   const [verifs, setVerifs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('pending');
@@ -92,7 +94,7 @@ export default function AdminVerificationsScreen() {
           <View style={s.card}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
               <View style={s.avatar}>
-                <Text style={{ fontSize: 16, fontWeight: '900', color: '#000' }}>
+                <Text style={{ fontSize: 16, fontWeight: '900', color: colors.text }}>
                   {v.users?.name?.charAt(0) || '?'}
                 </Text>
               </View>
@@ -113,8 +115,8 @@ export default function AdminVerificationsScreen() {
             {v.status === 'pending' && (
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <TouchableOpacity style={s.approveBtn} onPress={() => handleApprove(v)}>
-                  <Ionicons name="checkmark" size={16} color="#000" />
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#000' }}>Setujui</Text>
+                  <Ionicons name="checkmark" size={16} color={colors.accentText} />
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: colors.accentText }}>Setujui</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={s.rejectBtn} onPress={() => handleReject(v)}>
                   <Ionicons name="close" size={16} color={colors.red} />
@@ -141,7 +143,7 @@ export default function AdminVerificationsScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
@@ -153,7 +155,7 @@ const s = StyleSheet.create({
   filterText: { fontSize: 12, fontWeight: '600', color: colors.muted },
   empty: { alignItems: 'center', paddingTop: 60 },
   card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 14, padding: 16, marginBottom: 12 },
-  avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' },
   name: { fontSize: 15, fontWeight: '700', color: colors.text },
   nim: { fontSize: 12, color: colors.muted, marginTop: 2 },
   date: { fontSize: 11, color: colors.muted },

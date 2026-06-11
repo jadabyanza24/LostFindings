@@ -5,7 +5,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../lib/store';
-import { colors } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { SkeletonDetail, SkeletonList, SkeletonRows } from '../../components/Skeleton';
 import { Ionicons } from '@expo/vector-icons';
 import ImageViewing from 'react-native-image-viewing';
@@ -22,6 +22,8 @@ const CATEGORY_ICONS: Record<string, any> = {
 };
 
 export default function ItemDetailScreen() {
+  const { colors, isDark } = useTheme();
+  const s = getStyles(colors);
   const SCREEN_WIDTH = Dimensions.get('window').width;
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
@@ -260,7 +262,7 @@ export default function ItemDetailScreen() {
           </View>
           <View style={s.reporterCard}>
             <View style={s.avatar}>
-              <Text style={{fontSize:18,fontWeight:'900',color:'#000'}}>
+              <Text style={{fontSize:18,fontWeight:'900',color:colors.text}}>
                 {item.users?.name?.charAt(0)||'?'}
               </Text>
             </View>
@@ -284,7 +286,7 @@ export default function ItemDetailScreen() {
                   ? <Ionicons name="time" size={18} color={colors.muted} />
                   : alreadyClaimed
                   ? <Ionicons name="checkmark-circle" size={18} color={colors.muted} />
-                  : <Ionicons name="hand-right" size={18} color="#000" />
+                  : <Ionicons name="hand-right" size={18} color={colors.accentText} />
                 }
                 <Text style={[s.actionBtnText, alreadyClaimed && { color: colors.muted }]}>
                   {claiming ? 'Memproses...' : alreadyClaimed ? 'Klaim Terkirim' : 'Ajukan Klaim'}
@@ -322,7 +324,7 @@ export default function ItemDetailScreen() {
           {!isOwner && item.type==='lost' && (
             <TouchableOpacity style={s.actionBtn} onPress={() => requireVerified(handleChat)}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Ionicons name="chatbubbles" size={18} color="#000" />
+                <Ionicons name="chatbubbles" size={18} color={colors.accentText} />
                 <Text style={s.actionBtnText}>Hubungi Pemilik</Text>
               </View>
             </TouchableOpacity>
@@ -339,7 +341,7 @@ export default function ItemDetailScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container:{flex:1,backgroundColor:colors.bg},
   center:{flex:1,alignItems:'center',justifyContent:'center',backgroundColor:colors.bg},
   header:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',padding:16,borderBottomWidth:1,borderBottomColor:colors.border},
@@ -357,11 +359,11 @@ const s = StyleSheet.create({
   descLabel:{fontSize:12,fontWeight:'700',color:colors.muted,marginBottom:6},
   sectionLabel:{fontFamily: 'Michroma',fontSize:11,fontWeight:'700',color:colors.muted,letterSpacing:1,marginBottom:8},
   reporterCard:{flexDirection:'row',alignItems:'center',gap:12,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border,borderRadius:12,padding:14,marginBottom:20},
-  avatar:{width:46,height:46,borderRadius:23,backgroundColor:colors.accent,alignItems:'center',justifyContent:'center'},
+  avatar:{width:46,height:46,borderRadius:23,backgroundColor:colors.surface2,alignItems:'center',justifyContent:'center'},
   chatIconBtn:{width:38,height:38,borderRadius:19,backgroundColor:colors.surface2,borderWidth:1,borderColor:colors.border,alignItems:'center',justifyContent:'center'},
   actionBtn:{padding:17,backgroundColor:colors.accent,borderRadius:16,alignItems:'center',marginBottom:10},
   actionBtnDisabled:{backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},
-  actionBtnText:{fontSize:16,fontWeight:'800',color:'#000'},
+  actionBtnText:{fontSize:16,fontWeight:'800',color:colors.accentText},
   claimedBanner: {
     flexDirection: 'row',
     alignItems: 'center',

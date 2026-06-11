@@ -6,14 +6,42 @@ import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../lib/store';
-import { colors } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function VerifyScreen() {
   const user = useStore(s => s.user);
+  const { colors, isDark } = useTheme();
+  const s = getStyles(colors);
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  if (!user) {
+    return (
+      <SafeAreaView style={s.container}>
+        <View style={s.header}>
+          <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={20} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={s.title}>Verifikasi Mahasiswa</Text>
+          <View style={{ width: 36 }} />
+        </View>
+        <View style={[s.body, { justifyContent: 'center', alignItems: 'center' }]}>
+          <Ionicons name="lock-closed-outline" size={80} color={colors.muted} style={{ marginBottom: 16 }} />
+          <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 8 }}>
+            Belum Login
+          </Text>
+          <Text style={{ fontSize: 14, color: colors.muted, textAlign: 'center', lineHeight: 22, marginBottom: 24 }}>
+            Kamu harus masuk ke akunmu terlebih dahulu untuk melakukan verifikasi mahasiswa.
+          </Text>
+          <TouchableOpacity style={s.btn} onPress={() => router.push('/auth/login')}>
+            <Text style={s.btnText}>Login Sekarang</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -136,7 +164,7 @@ export default function VerifyScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
@@ -150,7 +178,7 @@ const s = StyleSheet.create({
   tipsTitle: { fontSize: 13, fontWeight: '700', color: colors.text },
   tipsItem: { fontSize: 13, color: colors.muted, marginBottom: 4 },
   btn: { padding: 16, backgroundColor: colors.accent, borderRadius: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
-  btnText: { fontSize: 16, fontWeight: '800', color: '#000' },
+  btnText: { fontSize: 16, fontWeight: '800', color: colors.accentText },
   successBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   successTitle: { fontSize: 24, fontWeight: '900', color: colors.text, marginBottom: 12 },
   successDesc: { fontSize: 14, color: colors.muted, textAlign: 'center', lineHeight: 22, marginBottom: 32 },

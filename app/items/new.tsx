@@ -5,13 +5,15 @@ import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '../../lib/store';
-import { colors } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useVerification } from '../../lib/useVerification';
 
 const CATEGORIES = ['Elektronik', 'Dompet', 'Kunci', 'Kartu', 'Tas', 'Lainnya'];
 
 export default function NewItemScreen() {
+  const { colors, isDark } = useTheme();
+  const s = getStyles(colors);
   const user = useStore(s => s.user);
   const { requireVerified } = useVerification();
 
@@ -224,7 +226,7 @@ export default function NewItemScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
@@ -244,7 +246,7 @@ const s = StyleSheet.create({
   removePhotoBtn: { position: 'absolute', top: -10, right: -10, backgroundColor: '#fff', borderRadius: 12 },
   addMorePhotoBtn: { width: 120, height: 120, borderWidth: 2, borderStyle: 'dashed', borderColor: colors.border, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   btn: { padding: 16, backgroundColor: colors.accent, borderRadius: 16, alignItems: 'center', marginTop: 10 },
-  btnText: { fontSize: 16, fontWeight: '800', color: '#000' },
+  btnText: { fontSize: 16, fontWeight: '800', color: colors.accentText },
 });
 
 
